@@ -4,7 +4,7 @@ import {
   ArrowRight, CheckCircle, Sun, Umbrella, Activity
 } from 'lucide-react';
 
-export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick }) {
+export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick, onLegalClick }) {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
       
@@ -315,9 +315,10 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick 
                 Careers
               </button>
 
-              <a href="#" className="text-slate-500 hover:text-slate-300 transition">Privacy Policy</a>
-              <a href="#" className="text-slate-500 hover:text-slate-300 transition">Terms of Service</a>
-              
+              {/* LEGAL BUTTONS ADDED HERE */}
+              <button onClick={onLegalClick} className="text-slate-500 hover:text-slate-300 transition">Privacy Policy</button>
+              <button onClick={onLegalClick} className="text-slate-500 hover:text-slate-300 transition">Terms of Service</button>
+
               {/* HIDDEN STAFF LOGIN LINK */}
               <button 
                 onClick={onLoginClick} 

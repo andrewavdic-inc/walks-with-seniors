@@ -155,7 +155,11 @@ export default function TeamPage({ onHomeClick, onCareersClick }) {
 
       {/* FOOTER */}
       <footer className="bg-slate-900 py-8 border-t border-slate-800 text-center">
-        <p className="text-slate-500 text-sm">© {new Date().getFullYear()} Walks with Seniors. All rights reserved.</p>
+        <p className="text-slate-500 text-sm mb-4">© {new Date().getFullYear()} Walks with Seniors. All rights reserved.</p>
+        <div className="flex justify-center space-x-6 text-sm font-medium">
+          <button onClick={onLegalClick} className="text-slate-500 hover:text-slate-300 transition">Privacy Policy</button>
+          <button onClick={onLegalClick} className="text-slate-500 hover:text-slate-300 transition">Terms of Service</button>
+        </div>
       </footer>
     </div>
   );
