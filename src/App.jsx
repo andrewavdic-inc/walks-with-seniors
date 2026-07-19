@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Briefcase, LogOut, User } from 'lucide-react';
 import LandingPage from './components/LandingPage';
+import CareersPage from './components/CareersPage';
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
@@ -176,16 +177,16 @@ export default function App() {
     }
   };
 
-// NEW: State to toggle between the Landing Page and the Login Form
-  const [showLogin, setShowLogin] = useState(false);
+  // State to toggle between the public pages
+  const [publicPage, setPublicPage] = useState('home'); // 'home', 'login', or 'careers'
 
   if (!currentUser) {
-    if (showLogin) {
+    if (publicPage === 'login') {
       return (
         <div className="relative">
           <button 
-            onClick={() => setShowLogin(false)} 
-            className="absolute top-6 left-6 z-50 text-teal-800 font-bold bg-white/80 backdrop-blur px-4 py-2 rounded-lg border border-teal-100 shadow-sm hover:bg-white"
+            onClick={() => setPublicPage('home')} 
+            className="absolute top-6 left-6 z-50 text-teal-800 font-bold bg-white/80 backdrop-blur px-4 py-2 rounded-lg border border-teal-100 shadow-sm hover:bg-white transition"
           >
             &larr; Back to Home
           </button>
@@ -193,7 +194,17 @@ export default function App() {
         </div>
       );
     }
-    return <LandingPage onLoginClick={() => setShowLogin(true)} />;
+    
+    if (publicPage === 'careers') {
+      return <CareersPage onHomeClick={() => setPublicPage('home')} />;
+    }
+    
+    return (
+      <LandingPage 
+        onLoginClick={() => setPublicPage('login')} 
+        onCareersClick={() => setPublicPage('careers')} 
+      />
+    );
   }
 
   // --- RENDER PORTALS BASED ON VIEW MODE ---
