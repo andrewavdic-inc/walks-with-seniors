@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Briefcase, LogOut, User } from 'lucide-react';
 import LandingPage from './components/LandingPage';
 import CareersPage from './components/CareersPage';
+import TeamPage from './components/TeamPage';
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
@@ -178,7 +179,7 @@ export default function App() {
   };
 
   // State to toggle between the public pages
-  const [publicPage, setPublicPage] = useState('home'); // 'home', 'login', or 'careers'
+  const [publicPage, setPublicPage] = useState('home'); // 'home', 'login', 'careers', or 'team'
 
   if (!currentUser) {
     if (publicPage === 'login') {
@@ -198,11 +199,16 @@ export default function App() {
     if (publicPage === 'careers') {
       return <CareersPage onHomeClick={() => setPublicPage('home')} />;
     }
+
+    if (publicPage === 'team') {
+      return <TeamPage onHomeClick={() => setPublicPage('home')} onCareersClick={() => setPublicPage('careers')} />;
+    }
     
     return (
       <LandingPage 
         onLoginClick={() => setPublicPage('login')} 
         onCareersClick={() => setPublicPage('careers')} 
+        onTeamClick={() => setPublicPage('team')}
       />
     );
   }

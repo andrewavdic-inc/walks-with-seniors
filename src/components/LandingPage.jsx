@@ -4,7 +4,7 @@ import {
   ArrowRight, CheckCircle, Sun, Umbrella, Activity
 } from 'lucide-react';
 
-export default function LandingPage({ onLoginClick, onCareersClick }) {
+export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick }) {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
       
@@ -21,6 +21,7 @@ export default function LandingPage({ onLoginClick, onCareersClick }) {
               </span>
             </div>
             <div className="hidden md:flex space-x-8 items-center font-semibold text-sm text-slate-600">
+              <button onClick={onTeamClick} className="hover:text-teal-600 transition">Our Team</button>
               <a href="#services" className="hover:text-teal-600 transition">Services</a>
               <a href="#how-it-works" className="hover:text-teal-600 transition">How it Works</a>
               <a href="#pricing" className="hover:text-teal-600 transition">Pricing</a>
@@ -303,6 +304,9 @@ export default function LandingPage({ onLoginClick, onCareersClick }) {
             <p className="text-slate-500 text-sm">© {new Date().getFullYear()} Walks with Seniors. All rights reserved.</p>
             <div className="flex space-x-6 text-sm font-medium items-center">
               
+              {/* TEAM BUTTON ADDED HERE */}
+              <button onClick={onTeamClick} className="text-slate-300 hover:text-white transition">Our Team</button>
+
               {/* CAREERS BUTTON ADDED HERE */}
               <button 
                 onClick={onCareersClick} 
