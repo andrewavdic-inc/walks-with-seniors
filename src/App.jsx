@@ -3,6 +3,7 @@ import { Briefcase, LogOut, User } from 'lucide-react';
 import LandingPage from './components/LandingPage';
 import CareersPage from './components/CareersPage';
 import TeamPage from './components/TeamPage';
+import LegalPage from './components/LegalPage'; // <-- NEW IMPORT
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
@@ -11,7 +12,6 @@ import { getFirestore, collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // --- UTILS & COMPONENTS ---
-// Note: We will build these components in the upcoming phases
 import LoginPage from './components/LoginPage';
 import AdminDashboard from './components/AdminDashboard';
 import WalkerPortal from './components/WalkerPortal';
@@ -20,7 +20,6 @@ import FamilyPortal from './components/FamilyPortal';
 // --- FIREBASE INITIALIZATION ---
 let firebaseApp, auth, db, storage, appId;
 try {
-  // Utilizing your existing Firebase project infrastructure, re-keyed for the new app
   const firebaseConfig = {
     apiKey: "AIzaSyCMhO6iAPDuWJhZLdWZ_orO8-AyWDItnQo",
     authDomain: "good-neighbour-portal.firebaseapp.com",
@@ -39,24 +38,20 @@ try {
 }
 
 export default function App() {
-  // --- AUTH STATE ---
   const [currentUser, setCurrentUser] = useState(null);
   const [firebaseUser, setFirebaseUser] = useState(null);
   const [isDbReady, setIsDbReady] = useState(false);
-  const [viewMode, setViewMode] = useState('walker'); // 'admin', 'walker', or 'family'
+  const [viewMode, setViewMode] = useState('walker');
   
-  // --- CORE APP STATE ---
   const [walkers, setWalkers] = useState([]);
   const [seniors, setSeniors] = useState([]);
   const [walks, setWalks] = useState([]);
   const [mileageLogs, setMileageLogs] = useState([]);
   
-  // --- GLOBAL SETTINGS ---
   const [officeLocation, setOfficeLocation] = useState('Port Colborne, ON');
-  const [flatRatePayout, setFlatRatePayout] = useState(25); // Default flat rate per walk
+  const [flatRatePayout, setFlatRatePayout] = useState(25);
   const [mileageRate, setMileageRate] = useState(0.68);
 
-// Setup Firebase Auth
   useEffect(() => {
     if (!auth) return;
     const initAuth = async () => {
@@ -67,12 +62,11 @@ export default function App() {
     initAuth();
     const unsubscribe = onAuthStateChanged(auth, user => { 
       setFirebaseUser(user); 
-      setIsDbReady(true); // <--- ADD THIS HERE: Unlocks the login button instantly
+      setIsDbReady(true);
     });
     return () => unsubscribe();
   }, []);
 
-  // Setup Lean Firestore Listeners
   useEffect(() => {
     if (!firebaseUser || !db) return;
 
@@ -80,22 +74,18 @@ export default function App() {
     const unsubs = [];
     const handleError = (err) => console.error("Firestore Error:", err);
 
-    // 1. Walkers (Formerly Employees)
     unsubs.push(onSnapshot(getCol('ws_walkers'), snap => { 
       setWalkers(snap.docs.map(d => ({ ...d.data(), id: d.id }))); 
     }, handleError));
 
-    // 2. Seniors (Formerly Clients)
     unsubs.push(onSnapshot(getCol('ws_seniors'), snap => {
       setSeniors(snap.docs.map(d => ({ ...d.data(), id: d.id })));
     }, handleError));
 
-    // 3. Walks (Formerly Shifts) - Now includes embedded photoUrls and update notes
     unsubs.push(onSnapshot(getCol('ws_walks'), snap => {
       setWalks(snap.docs.map(d => ({ ...d.data(), id: d.id })));
     }, handleError));
 
-    // 4. Mileage Logs
     unsubs.push(onSnapshot(getCol('ws_mileage'), snap => {
       setMileageLogs(snap.docs.map(d => ({ ...d.data(), id: d.id })));
     }, handleError));
@@ -103,17 +93,14 @@ export default function App() {
     return () => unsubs.forEach(unsub => unsub());
   }, [firebaseUser]);
 
-  // --- AUTHENTICATION ROUTING ---
   const handleLogin = async (email, password) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const secureEmail = userCredential.user.email;
 
-      // Check if user is a Walker/Admin
       let foundUser = walkers.find(w => w.email && String(w.email).toLowerCase() === String(secureEmail).toLowerCase());
       let userRoleType = 'walker';
 
-      // If not a walker, check if they are a Family Account Holder
       if (!foundUser) {
         const foundFamily = seniors.find(s => s.accountHolderEmail && String(s.accountHolderEmail).toLowerCase() === String(secureEmail).toLowerCase());
         if (foundFamily) {
@@ -122,7 +109,6 @@ export default function App() {
         }
       }
 
-      // Emergency Master Admin Fallback
       if (!foundUser && String(secureEmail).toLowerCase() === 'blueberry@gmail.com') {
          foundUser = { id: 'admin1', name: 'Master Admin', role: 'Master Admin', isActive: true };
          userRoleType = 'admin';
@@ -130,8 +116,6 @@ export default function App() {
 
       if (foundUser) {
         setCurrentUser(foundUser);
-        
-        // Route to the correct portal based on role
         if (userRoleType === 'family') {
           setViewMode('family');
         } else {
@@ -152,7 +136,6 @@ export default function App() {
     setViewMode('walker'); 
   };
 
-  // --- DATABASE MUTATION ENGINE ---
   const getDocRef = (cName, dId) => doc(db, 'artifacts', appId, 'public', 'data', cName, String(dId));
   
   const runMutation = async (cName, dId, action, data) => {
@@ -163,7 +146,6 @@ export default function App() {
     if(action === 'delete') await deleteDoc(ref);
   };
 
-  // --- UNIFIED FILE UPLOADER (Avatars & Walk Updates) ---
   const handleFileUpload = async (file, folder) => {
     if (!file || !firebaseUser || !storage) return null;
     try {
@@ -178,10 +160,9 @@ export default function App() {
     }
   };
 
-  // State to toggle between the public pages
-  const [publicPage, setPublicPage] = useState('home'); // 'home', 'login', 'careers', or 'team'
+  const [publicPage, setPublicPage] = useState('home');
 
-  if (!currentUser) {
+if (!currentUser) {
     if (publicPage === 'login') {
       return (
         <div className="relative">
@@ -197,11 +178,15 @@ export default function App() {
     }
     
     if (publicPage === 'careers') {
-      return <CareersPage onHomeClick={() => setPublicPage('home')} />;
+      return <CareersPage onHomeClick={() => setPublicPage('home')} onLegalClick={() => setPublicPage('legal')} />;
     }
 
     if (publicPage === 'team') {
-      return <TeamPage onHomeClick={() => setPublicPage('home')} onCareersClick={() => setPublicPage('careers')} />;
+      return <TeamPage onHomeClick={() => setPublicPage('home')} onCareersClick={() => setPublicPage('careers')} onLegalClick={() => setPublicPage('legal')} />;
+    }
+
+    if (publicPage === 'legal') {
+      return <LegalPage onHomeClick={() => setPublicPage('home')} />;
     }
     
     return (
@@ -209,14 +194,13 @@ export default function App() {
         onLoginClick={() => setPublicPage('login')} 
         onCareersClick={() => setPublicPage('careers')} 
         onTeamClick={() => setPublicPage('team')}
+        onLegalClick={() => setPublicPage('legal')}
       />
     );
   }
 
-  // --- RENDER PORTALS BASED ON VIEW MODE ---
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
-      {/* Universal Navigation Bar */}
       <nav className="bg-teal-700 text-white shadow-md px-6 py-4 flex justify-between items-center">
         <div className="font-bold text-xl flex items-center">
           <Briefcase className="mr-2 h-6 w-6 text-teal-200"/> 
