@@ -1,7 +1,7 @@
 import React from 'react';
 import { MapPin, ChevronLeft, HeartPulse, Sparkles, Users, ArrowRight } from 'lucide-react';
 
-export default function TeamPage({ onHomeClick, onCareersClick }) {
+export default function TeamPage({ onHomeClick, onCareersClick, onLegalClick }) {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
       

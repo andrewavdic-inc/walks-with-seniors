@@ -143,7 +143,7 @@ export default function CareersPage({ onHomeClick, onLegalClick }) {
         </div>
       </section>
 
-{/* FOOTER */}
+      {/* FOOTER */}
       <footer className="bg-slate-900 py-8 border-t border-slate-800 text-center">
         <p className="text-slate-500 text-sm mb-4">© {new Date().getFullYear()} Walks with Seniors. All rights reserved.</p>
         <div className="flex justify-center space-x-6 text-sm font-medium">

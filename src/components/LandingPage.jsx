@@ -304,10 +304,8 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
             <p className="text-slate-500 text-sm">© {new Date().getFullYear()} Walks with Seniors. All rights reserved.</p>
             <div className="flex space-x-6 text-sm font-medium items-center">
               
-              {/* TEAM BUTTON ADDED HERE */}
               <button onClick={onTeamClick} className="text-slate-300 hover:text-white transition">Our Team</button>
 
-              {/* CAREERS BUTTON ADDED HERE */}
               <button 
                 onClick={onCareersClick} 
                 className="text-teal-400 font-bold hover:text-teal-300 transition"
@@ -315,10 +313,9 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
                 Careers
               </button>
 
-              {/* LEGAL BUTTONS ADDED HERE */}
               <button onClick={onLegalClick} className="text-slate-500 hover:text-slate-300 transition">Privacy Policy</button>
               <button onClick={onLegalClick} className="text-slate-500 hover:text-slate-300 transition">Terms of Service</button>
-
+              
               {/* HIDDEN STAFF LOGIN LINK */}
               <button 
                 onClick={onLoginClick} 
