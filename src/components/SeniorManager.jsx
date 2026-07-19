@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Heart, Search, Edit, MapPin, Activity, Phone, Plus, User, Archive, RefreshCcw } from 'lucide-react';
+import { Heart, Search, MapPin, Activity, Phone, Plus, User, Archive, RefreshCcw, Key } from 'lucide-react';
+import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 
 export default function SeniorManager({ seniors, runMutation }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,6 +17,8 @@ export default function SeniorManager({ seniors, runMutation }) {
     emergencyContactName: '',
     emergencyContactPhone: '',
     monthlyWalksPackage: '8', // Prepaid walks per month
+    accountHolderName: '', // For Family Portal Login
+    accountHolderEmail: '' // For Family Portal Login
   });
 
   const handleChange = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
@@ -36,9 +39,22 @@ export default function SeniorManager({ seniors, runMutation }) {
 
     setFormData({
       name: '', address: '', phone: '', mobility: 'Independent', pace: 'Moderate', 
-      routePreferences: '', emergencyContactName: '', emergencyContactPhone: '', monthlyWalksPackage: '8'
+      routePreferences: '', emergencyContactName: '', emergencyContactPhone: '', monthlyWalksPackage: '8',
+      accountHolderName: '', accountHolderEmail: ''
     });
     setIsUploading(false);
+  };
+
+  const handlePasswordReset = async (email) => {
+    if (!email) return;
+    try {
+      const auth = getAuth();
+      await sendPasswordResetEmail(auth, email);
+      alert(`A secure password reset link has been sent to ${email}`);
+    } catch (error) {
+      console.error("Reset error:", error);
+      alert("Failed to send reset email. Please ensure this email is registered in the system.");
+    }
   };
 
   const filteredSeniors = seniors.filter(senior => {
@@ -78,47 +94,72 @@ export default function SeniorManager({ seniors, runMutation }) {
             <div className="text-center p-8 text-slate-500">No seniors found.</div>
           ) : (
             filteredSeniors.map(senior => (
-              <div key={senior.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col sm:flex-row justify-between relative group">
+              <div key={senior.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col relative group">
+                
+                {/* Deactivate/Reactivate Button */}
                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                   {senior.isActive !== false ? (
-                    <button onClick={() => { if(window.confirm('Deactivate this profile?')) runMutation('ws_seniors', senior.id, 'update', { isActive: false })}} className="p-1.5 text-slate-400 hover:bg-amber-50 hover:text-amber-600 rounded"><Archive className="h-4 w-4"/></button>
+                    <button onClick={() => { if(window.confirm('Deactivate this profile?')) runMutation('ws_seniors', senior.id, 'update', { isActive: false })}} className="p-1.5 text-slate-400 hover:bg-amber-50 hover:text-amber-600 rounded" title="Archive Profile"><Archive className="h-4 w-4"/></button>
                   ) : (
-                    <button onClick={() => runMutation('ws_seniors', senior.id, 'update', { isActive: true })} className="p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 rounded"><RefreshCcw className="h-4 w-4"/></button>
+                    <button onClick={() => runMutation('ws_seniors', senior.id, 'update', { isActive: true })} className="p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 rounded" title="Restore Profile"><RefreshCcw className="h-4 w-4"/></button>
                   )}
                 </div>
 
-                <div>
-                  <h3 className="font-bold text-lg text-slate-800">{senior.name}</h3>
-                  <div className="flex items-center space-x-3 mt-1 text-sm text-slate-600">
-                    <span className="flex items-center"><MapPin className="h-4 w-4 mr-1 text-slate-400"/> {senior.address}</span>
-                    <span className="flex items-center"><Phone className="h-4 w-4 mr-1 text-slate-400"/> {senior.phone}</span>
-                  </div>
-                  
-                  <div className="flex gap-2 mt-3">
-                    <span className="bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1 rounded text-xs font-bold flex items-center">
-                      <Activity className="h-3.5 w-3.5 mr-1" /> Pace: {senior.pace}
-                    </span>
-                    <span className="bg-purple-50 text-purple-700 border border-purple-100 px-2.5 py-1 rounded text-xs font-bold">
-                      Aid: {senior.mobility}
-                    </span>
-                  </div>
-
-                  {senior.routePreferences && (
-                    <p className="mt-3 text-sm text-slate-600 italic">" {senior.routePreferences} "</p>
-                  )}
-                </div>
-
-                <div className="mt-4 sm:mt-0 sm:text-right flex flex-col justify-between">
+                <div className="flex flex-col sm:flex-row justify-between mb-4">
                   <div>
-                    <div className="text-xs font-bold text-slate-400 uppercase">Monthly Package</div>
-                    <div className="text-xl font-black text-teal-600">{senior.monthlyWalksPackage} Walks</div>
+                    <h3 className="font-bold text-lg text-slate-800">{senior.name}</h3>
+                    <div className="flex items-center space-x-3 mt-1 text-sm text-slate-600">
+                      <span className="flex items-center"><MapPin className="h-4 w-4 mr-1 text-slate-400"/> {senior.address}</span>
+                      <span className="flex items-center"><Phone className="h-4 w-4 mr-1 text-slate-400"/> {senior.phone}</span>
+                    </div>
+                    
+                    <div className="flex gap-2 mt-3">
+                      <span className="bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1 rounded text-xs font-bold flex items-center">
+                        <Activity className="h-3.5 w-3.5 mr-1" /> Pace: {senior.pace}
+                      </span>
+                      <span className="bg-purple-50 text-purple-700 border border-purple-100 px-2.5 py-1 rounded text-xs font-bold">
+                        Aid: {senior.mobility}
+                      </span>
+                    </div>
+
+                    {senior.routePreferences && (
+                      <p className="mt-3 text-sm text-slate-600 italic">" {senior.routePreferences} "</p>
+                    )}
                   </div>
-                  <div className="mt-2">
-                    <div className="text-xs font-bold text-slate-400 uppercase">Emergency</div>
-                    <div className="text-sm font-semibold text-slate-700">{senior.emergencyContactName}</div>
-                    <div className="text-xs text-slate-500">{senior.emergencyContactPhone}</div>
+
+                  <div className="mt-4 sm:mt-0 sm:text-right flex flex-col justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-slate-400 uppercase">Monthly Package</div>
+                      <div className="text-xl font-black text-teal-600">{senior.monthlyWalksPackage} Walks</div>
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-xs font-bold text-slate-400 uppercase">Emergency</div>
+                      <div className="text-sm font-semibold text-slate-700">{senior.emergencyContactName}</div>
+                      <div className="text-xs text-slate-500">{senior.emergencyContactPhone}</div>
+                    </div>
                   </div>
                 </div>
+
+                {/* FAMILY PORTAL ACCESS CONTROLS */}
+                <div className="mt-2 pt-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div>
+                    <div className="text-xs font-bold text-slate-400 uppercase flex items-center mb-1"><User className="h-3 w-3 mr-1"/> Family Portal Login</div>
+                    {senior.accountHolderEmail ? (
+                      <div className="text-sm font-medium text-slate-700">{senior.accountHolderName} ({senior.accountHolderEmail})</div>
+                    ) : (
+                      <div className="text-sm font-medium text-amber-600">No portal account linked</div>
+                    )}
+                  </div>
+                  {senior.accountHolderEmail && (
+                    <button 
+                      onClick={() => handlePasswordReset(senior.accountHolderEmail)}
+                      className="text-xs bg-slate-50 hover:bg-teal-50 text-slate-600 hover:text-teal-700 border border-slate-200 hover:border-teal-200 px-3 py-2 rounded-lg transition flex items-center font-bold"
+                    >
+                      <Key className="h-3 w-3 mr-1.5" /> Send Password Reset
+                    </button>
+                  )}
+                </div>
+
               </div>
             ))
           )}
@@ -178,15 +219,24 @@ export default function SeniorManager({ seniors, runMutation }) {
           </div>
 
           <div className="border-t border-slate-100 pt-4">
-            <label className="block text-sm font-medium text-slate-700 mb-1">Emergency Contact (Name & Phone)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1 text-teal-800 flex items-center"><User className="h-4 w-4 mr-1.5" /> Family Account Link</label>
+            <p className="text-xs text-slate-500 mb-3">Link this senior to the family member's login email.</p>
+            <div className="grid grid-cols-1 gap-3">
+              <input type="text" value={formData.accountHolderName} onChange={e => handleChange('accountHolderName', e.target.value)} placeholder="Family Member Name" className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-teal-500 text-sm bg-slate-50" disabled={isUploading}/>
+              <input type="email" value={formData.accountHolderEmail} onChange={e => handleChange('accountHolderEmail', e.target.value)} placeholder="Family Login Email" className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-teal-500 text-sm bg-slate-50" disabled={isUploading}/>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-100 pt-4">
+            <label className="block text-sm font-medium text-slate-700 mb-1">Emergency Contact</label>
             <div className="grid grid-cols-2 gap-3">
               <input type="text" value={formData.emergencyContactName} onChange={e => handleChange('emergencyContactName', e.target.value)} placeholder="Name" className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-teal-500 text-sm" disabled={isUploading}/>
               <input type="text" value={formData.emergencyContactPhone} onChange={e => handleChange('emergencyContactPhone', e.target.value)} placeholder="Phone" className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-teal-500 text-sm" disabled={isUploading}/>
             </div>
           </div>
 
-          <button type="submit" disabled={isUploading} className="w-full mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded transition flex items-center justify-center disabled:bg-slate-400">
-            <Plus className="h-4 w-4 mr-2"/> Add Profile
+          <button type="submit" disabled={isUploading} className="w-full mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-lg transition flex items-center justify-center disabled:bg-slate-400 shadow-sm">
+            <Plus className="h-5 w-5 mr-2"/> Add Profile
           </button>
         </form>
       </div>

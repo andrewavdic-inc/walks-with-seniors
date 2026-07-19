@@ -9,7 +9,8 @@ import MilestonesAndFeed from './MilestonesAndFeed';
 import LeadManager from './LeadManager';
 
 export default function AdminDashboard(props) {
-  const [activeAdminTab, setActiveAdminTab] = useState('dispatch');
+  // Defaulting to the leads tab so you can see your new pipeline immediately
+  const [activeAdminTab, setActiveAdminTab] = useState('leads');
 
   const renderAdminTab = () => {
     switch (activeAdminTab) {
@@ -19,13 +20,13 @@ export default function AdminDashboard(props) {
       case 'walkers': return <WalkerManager {...props} />;
       case 'earnings': return <AdminEarningsManager {...props} />;
       case 'culture': return <MilestonesAndFeed {...props} />;
-      default: return <DispatchDashboard {...props} />;
+      default: return <LeadManager {...props} />;
     }
   };
 
   const tabs = [
-    { id: 'dispatch', icon: CalendarIcon, label: 'Dispatch Center' }, 
     { id: 'leads', icon: Filter, label: 'Sales & Intake' }, 
+    { id: 'dispatch', icon: CalendarIcon, label: 'Dispatch Center' }, 
     { id: 'seniors', icon: Heart, label: 'Senior Directory' }, 
     { id: 'walkers', icon: Users, label: 'Walker Team' }, 
     { id: 'earnings', icon: Coins, label: 'Payroll & Earnings' }, 

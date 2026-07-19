@@ -1,69 +1,148 @@
 import React, { useState, useEffect } from 'react';
 import { 
   MapPin, ShieldCheck, Camera, Coffee, Flower, 
-  ArrowRight, CheckCircle, Sun, Umbrella, Activity, Phone, Mail
+  ArrowRight, CheckCircle, Sun, Umbrella, Activity, Phone, Mail, Lock
 } from 'lucide-react';
 
-export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick, onLegalClick, runMutation }) {
+export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick, onLegalClick, runMutation, onCheckoutSignup }) {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [intakeForm, setIntakeForm] = useState({ name: '', phone: '', mobilityNotes: '' });
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', message: '' });
+  
+  // Checkout & Registration State
+  const [checkoutTier, setCheckoutTier] = useState(null); 
+  const [checkoutForm, setCheckoutForm] = useState({ 
+    familyName: '', 
+    email: '', 
+    password: '', 
+    seniorName: '', 
+    phone: '' 
+  });
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Listens for a simulated successful redirect from Stripe
+  // Listens for a successful redirect from Stripe
   useEffect(() => {
     if (window.location.search.includes('success=true')) {
       setShowSuccessModal(true);
+      // Clean up the URL so it doesn't keep showing the modal on page refresh
+      window.history.replaceState(null, '', window.location.pathname);
     }
   }, []);
-
-  const handleIntakeSubmit = async (e) => {
-    e.preventDefault();
-    if (!runMutation) return;
-    await runMutation('ws_leads', `lead_${Date.now()}`, 'set', { ...intakeForm, type: 'New Booking Intake', status: 'New Inquiry' });
-    setShowSuccessModal(false);
-    alert("Information submitted securely. We'll be in touch shortly!");
-  };
 
   const handleContactSubmit = async (e) => {
     e.preventDefault();
     if (!runMutation) return;
-    await runMutation('ws_leads', `lead_${Date.now()}`, 'set', { ...contactForm, type: 'Contact Form', status: 'New Inquiry' });
+    await runMutation('ws_leads', `lead_${Date.now()}`, 'set', { 
+      ...contactForm, 
+      type: 'Contact Form', 
+      status: 'New Inquiry' 
+    });
     setContactForm({ name: '', email: '', phone: '', message: '' });
     alert("Message sent! We will get back to you shortly.");
   };
 
+  const handleCheckoutSubmit = async (e) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    
+    try {
+      // Send the data up to App.jsx to create the Auth account and the Lead in the pipeline
+      if (onCheckoutSignup) {
+        await onCheckoutSignup({
+          ...checkoutForm,
+          tierSelected: checkoutTier.name
+        });
+      }
+      
+      // In production, you would redirect to the actual Stripe Payment Link here.
+      // e.g., window.location.href = checkoutTier.stripeLink;
+      
+      // For now, we simulate the successful Stripe payment redirect:
+      window.location.href = "?success=true";
+      
+    } catch (error) {
+      alert(error.message || "Registration failed. Please try again.");
+      setIsProcessing(false);
+    }
+  };
+
+  const pricingTiers = [
+    { name: "The Stroller", walks: 4, price: 180, stripeLink: "?success=true" },
+    { name: "The Explorer", walks: 8, price: 344, stripeLink: "?success=true" },
+    { name: "The Centurion", walks: 12, price: 492, stripeLink: "?success=true" }
+  ];
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col pb-16 md:pb-0">
       
+      {/* CHECKOUT & REGISTRATION MODAL */}
+      {checkoutTier && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">
+            <button 
+              onClick={() => setCheckoutTier(null)} 
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-xl"
+            >&times;</button>
+            
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-black text-slate-800">Secure Checkout</h2>
+              <p className="text-teal-600 font-bold">{checkoutTier.name} Package — ${checkoutTier.price}/mo</p>
+            </div>
+            
+            <div className="bg-slate-50 rounded-xl p-6 text-left border border-slate-200">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">1. Create Family Login</p>
+              <form onSubmit={handleCheckoutSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Your Name</label>
+                    <input required type="text" value={checkoutForm.familyName} onChange={e => setCheckoutForm({...checkoutForm, familyName: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 bg-white" placeholder="Jane Doe" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Your Phone</label>
+                    <input required type="text" value={checkoutForm.phone} onChange={e => setCheckoutForm({...checkoutForm, phone: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 bg-white" placeholder="(555) 123-4567" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+                  <input required type="email" value={checkoutForm.email} onChange={e => setCheckoutForm({...checkoutForm, email: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 bg-white" placeholder="jane@example.com" />
+                </div>
+                <div className="mb-6">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Create Password</label>
+                  <input required type="password" value={checkoutForm.password} onChange={e => setCheckoutForm({...checkoutForm, password: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 bg-white" placeholder="••••••••" />
+                </div>
+
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2 pt-2">2. Client Details</p>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Senior's Full Name</label>
+                  <input required type="text" value={checkoutForm.seniorName} onChange={e => setCheckoutForm({...checkoutForm, seniorName: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 bg-white" placeholder="John Doe Sr." />
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={isProcessing}
+                  className="w-full mt-6 bg-teal-600 hover:bg-teal-700 text-white font-black py-3.5 rounded-xl transition shadow-sm flex items-center justify-center disabled:opacity-50"
+                >
+                  {isProcessing ? 'Processing...' : (
+                    <>Proceed to Payment <Lock className="h-4 w-4 ml-2" /></>
+                  )}
+                </button>
+                <p className="text-[10px] text-center text-slate-500 mt-2">You will be securely redirected to Stripe to complete your purchase.</p>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CHECKOUT SUCCESS MODAL */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 text-center relative overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center relative overflow-hidden">
             <div className="bg-teal-100 text-teal-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="h-8 w-8" />
             </div>
-            <h2 className="text-3xl font-black text-slate-800 mb-2">Payment Successful</h2>
-            <p className="text-lg font-bold text-teal-700 mb-6">We will contact you within 24 hrs to schedule your first walk.</p>
-            
-            <div className="bg-slate-50 rounded-xl p-6 text-left border border-slate-200">
-              <p className="text-sm font-bold text-slate-700 mb-4">While we prepare your file, please help us by answering a few quick questions about the senior:</p>
-              <form onSubmit={handleIntakeSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Senior's Name</label>
-                  <input required type="text" value={intakeForm.name} onChange={e => setIntakeForm({...intakeForm, name: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Your Phone Number</label>
-                  <input required type="text" value={intakeForm.phone} onChange={e => setIntakeForm({...intakeForm, phone: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Mobility Limitations / Notes</label>
-                  <textarea required rows="2" value={intakeForm.mobilityNotes} onChange={e => setIntakeForm({...intakeForm, mobilityNotes: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500"></textarea>
-                </div>
-                <button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl transition">Submit Info & Finish</button>
-              </form>
-            </div>
-            <button onClick={() => setShowSuccessModal(false)} className="mt-6 text-sm text-slate-500 hover:text-slate-700 font-medium">Close for now</button>
+            <h2 className="text-3xl font-black text-slate-800 mb-2">Payment Successful!</h2>
+            <p className="text-lg font-bold text-teal-700 mb-6 border-b border-slate-100 pb-6">We will contact you within 24 hrs to schedule your first walk.</p>
+            <p className="text-sm text-slate-600 mb-6">Your Family Login has been securely created. You can use it to view photo updates once the walks begin.</p>
+            <button onClick={() => setShowSuccessModal(false)} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition">Back to Home</button>
           </div>
         </div>
       )}
@@ -192,8 +271,6 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            
-            {/* Card 1 */}
             <div className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition duration-300 overflow-hidden border border-slate-100 group">
               <div className="h-64 overflow-hidden relative">
                 <img src="j3ei5lj3.png" alt="Outdoor Adventures" className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
@@ -205,7 +282,6 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
               </div>
             </div>
 
-            {/* Card 2 */}
             <div className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition duration-300 overflow-hidden border border-slate-100 group">
               <div className="h-64 overflow-hidden relative">
                 <img src="h4ye4v.png" alt="All-Weather Mall Walks" className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
@@ -217,7 +293,6 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
               </div>
             </div>
 
-            {/* Card 3 */}
             <div className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition duration-300 overflow-hidden border border-slate-100 group">
               <div className="h-64 overflow-hidden relative">
                 <img src="0fk2hc0.png" alt="Cafe Companionship" className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
@@ -229,7 +304,6 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
               </div>
             </div>
 
-            {/* Card 4 */}
             <div className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition duration-300 overflow-hidden border border-slate-100 group">
               <div className="h-64 overflow-hidden relative">
                 <img src="nlvvy.png" alt="Light Mobility Assistance" className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
@@ -240,7 +314,6 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
                 <p className="text-slate-600 leading-relaxed">Accommodating canes, walkers, and wheelchairs. We focus on stretching and gentle movement to keep joints healthy safely.</p>
               </div>
             </div>
-
           </div>
         </div>
       </section>
@@ -284,52 +357,30 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            
-            {/* Tier 1 */}
-            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm flex flex-col relative overflow-hidden group hover:border-teal-400 hover:shadow-xl transition">
-              <h3 className="text-2xl font-black text-slate-800 mb-2">The Stroller</h3>
-              <div className="text-slate-500 font-medium mb-6">4 Walks / Month</div>
-              <div className="text-4xl font-black text-teal-700 mb-2">$180<span className="text-lg text-slate-400 font-medium">/mo</span></div>
-              <div className="text-sm font-bold text-teal-600/70 mb-8 border-b border-slate-100 pb-8">$45 per walk</div>
-              <ul className="space-y-4 mb-8 flex-1">
-                <li className="flex items-center text-slate-600 font-medium"><CheckCircle className="h-5 w-5 text-teal-500 mr-3 shrink-0"/> 45-60 minute visits</li>
-                <li className="flex items-center text-slate-600 font-medium"><CheckCircle className="h-5 w-5 text-teal-500 mr-3 shrink-0"/> Dedicated matched walker</li>
-                <li className="flex items-center text-slate-600 font-medium"><CheckCircle className="h-5 w-5 text-teal-500 mr-3 shrink-0"/> Live photo updates</li>
-              </ul>
-              {/* Note: In production, href will be your actual Stripe Payment Link */}
-              <a href="?success=true" className="w-full block py-4 text-center rounded-xl font-bold text-teal-800 bg-teal-50 border border-teal-200 hover:bg-teal-600 hover:text-white transition">Get Started</a>
-            </div>
-
-            {/* Tier 2 */}
-            <div className="bg-teal-700 rounded-3xl p-8 border border-teal-600 shadow-2xl flex flex-col relative overflow-hidden transform md:-translate-y-4">
-              <div className="absolute top-0 inset-x-0 bg-gradient-to-r from-teal-400 to-emerald-400 text-teal-950 text-xs font-black uppercase tracking-widest text-center py-2 shadow-sm">Most Popular</div>
-              <h3 className="text-2xl font-black text-white mb-2 mt-4">The Explorer</h3>
-              <div className="text-teal-200 font-medium mb-6">8 Walks / Month</div>
-              <div className="text-4xl font-black text-white mb-2">$344<span className="text-lg text-teal-200 font-medium">/mo</span></div>
-              <div className="text-sm font-bold text-teal-300 mb-8 border-b border-teal-600 pb-8">$43 per walk</div>
-              <ul className="space-y-4 mb-8 flex-1">
-                <li className="flex items-center text-teal-50 font-medium"><CheckCircle className="h-5 w-5 text-teal-400 mr-3 shrink-0"/> 45-60 minute visits</li>
-                <li className="flex items-center text-teal-50 font-medium"><CheckCircle className="h-5 w-5 text-teal-400 mr-3 shrink-0"/> Dedicated matched walker</li>
-                <li className="flex items-center text-teal-50 font-medium"><CheckCircle className="h-5 w-5 text-teal-400 mr-3 shrink-0"/> Live photo updates</li>
-                <li className="flex items-center text-teal-50 font-medium"><CheckCircle className="h-5 w-5 text-teal-400 mr-3 shrink-0"/> Priority scheduling</li>
-              </ul>
-              <a href="?success=true" className="w-full block py-4 text-center rounded-xl font-black text-teal-900 bg-white hover:bg-slate-100 shadow-lg transition">Get Started</a>
-            </div>
-
-            {/* Tier 3 */}
-            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm flex flex-col relative overflow-hidden group hover:border-teal-400 hover:shadow-xl transition">
-              <h3 className="text-2xl font-black text-slate-800 mb-2">The Centurion</h3>
-              <div className="text-slate-500 font-medium mb-6">12 Walks / Month</div>
-              <div className="text-4xl font-black text-teal-700 mb-2">$492<span className="text-lg text-slate-400 font-medium">/mo</span></div>
-              <div className="text-sm font-bold text-teal-600/70 mb-8 border-b border-slate-100 pb-8">$41 per walk</div>
-              <ul className="space-y-4 mb-8 flex-1">
-                <li className="flex items-center text-slate-600 font-medium"><CheckCircle className="h-5 w-5 text-teal-500 mr-3 shrink-0"/> 45-60 minute visits</li>
-                <li className="flex items-center text-slate-600 font-medium"><CheckCircle className="h-5 w-5 text-teal-500 mr-3 shrink-0"/> Dedicated matched walker</li>
-                <li className="flex items-center text-slate-600 font-medium"><CheckCircle className="h-5 w-5 text-teal-500 mr-3 shrink-0"/> Live photo updates</li>
-              </ul>
-              <a href="?success=true" className="w-full block py-4 text-center rounded-xl font-bold text-teal-800 bg-teal-50 border border-teal-200 hover:bg-teal-600 hover:text-white transition">Get Started</a>
-            </div>
-
+            {pricingTiers.map((tier, index) => (
+              <div key={index} className={`rounded-3xl p-8 border shadow-sm flex flex-col relative overflow-hidden transition ${index === 1 ? 'bg-teal-700 border-teal-600 shadow-2xl transform md:-translate-y-4' : 'bg-white border-slate-200 group hover:border-teal-400 hover:shadow-xl'}`}>
+                {index === 1 && <div className="absolute top-0 inset-x-0 bg-gradient-to-r from-teal-400 to-emerald-400 text-teal-950 text-xs font-black uppercase tracking-widest text-center py-2 shadow-sm">Most Popular</div>}
+                
+                <h3 className={`text-2xl font-black mb-2 ${index === 1 ? 'text-white mt-4' : 'text-slate-800'}`}>{tier.name}</h3>
+                <div className={`font-medium mb-6 ${index === 1 ? 'text-teal-200' : 'text-slate-500'}`}>{tier.walks} Walks / Month</div>
+                <div className={`text-4xl font-black mb-2 ${index === 1 ? 'text-white' : 'text-teal-700'}`}>${tier.price}<span className={`text-lg font-medium ${index === 1 ? 'text-teal-200' : 'text-slate-400'}`}>/mo</span></div>
+                <div className={`text-sm font-bold pb-8 border-b mb-8 ${index === 1 ? 'text-teal-300 border-teal-600' : 'text-teal-600/70 border-slate-100'}`}>${Math.round(tier.price / tier.walks)} per walk</div>
+                
+                <ul className="space-y-4 mb-8 flex-1">
+                  <li className={`flex items-center font-medium ${index === 1 ? 'text-teal-50' : 'text-slate-600'}`}><CheckCircle className={`h-5 w-5 mr-3 shrink-0 ${index === 1 ? 'text-teal-400' : 'text-teal-500'}`}/> 45-60 minute visits</li>
+                  <li className={`flex items-center font-medium ${index === 1 ? 'text-teal-50' : 'text-slate-600'}`}><CheckCircle className={`h-5 w-5 mr-3 shrink-0 ${index === 1 ? 'text-teal-400' : 'text-teal-500'}`}/> Dedicated matched walker</li>
+                  <li className={`flex items-center font-medium ${index === 1 ? 'text-teal-50' : 'text-slate-600'}`}><CheckCircle className={`h-5 w-5 mr-3 shrink-0 ${index === 1 ? 'text-teal-400' : 'text-teal-500'}`}/> Live photo updates</li>
+                  {index === 1 && <li className="flex items-center font-medium text-teal-50"><CheckCircle className="h-5 w-5 mr-3 shrink-0 text-teal-400"/> Priority scheduling</li>}
+                </ul>
+                
+                <button 
+                  onClick={() => setCheckoutTier(tier)}
+                  className={`w-full py-4 text-center rounded-xl font-bold transition ${index === 1 ? 'text-teal-900 bg-white hover:bg-slate-100 shadow-lg' : 'text-teal-800 bg-teal-50 border border-teal-200 hover:bg-teal-600 hover:text-white'}`}
+                >
+                  Get Started
+                </button>
+              </div>
+            ))}
           </div>
 
           {/* Add-ons */}

@@ -9,6 +9,7 @@ export default function LeadManager({ leads = [], runMutation }) {
   };
 
   const handleDrop = (e, status) => {
+    e.preventDefault();
     const leadId = e.dataTransfer.getData('leadId');
     if (leadId && runMutation) {
       runMutation('ws_leads', leadId, 'update', { status });
@@ -52,18 +53,34 @@ export default function LeadManager({ leads = [], runMutation }) {
                     <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider ${lead.type === 'New Booking Intake' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>
                       {lead.type || 'Contact'}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium">{new Date(parseInt(lead.id.split('_')[1])).toLocaleDateString()}</span>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      {new Date(parseInt(lead.id.split('_')[1])).toLocaleDateString()}
+                    </span>
                   </div>
-                  <h4 className="font-bold text-slate-800 text-sm">{lead.name}</h4>
+                  <h4 className="font-bold text-slate-800 text-sm">
+                    {lead.name} {lead.seniorName && <span className="font-normal text-slate-500"> (for {lead.seniorName})</span>}
+                  </h4>
+                  {lead.tier && <div className="text-xs font-bold text-teal-600 mt-1">{lead.tier} Package</div>}
                   <p className="text-xs text-slate-600 mt-1.5 line-clamp-3">{lead.message || lead.mobilityNotes}</p>
+                  
                   <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500 space-y-1.5">
-                    {lead.email && <div className="flex items-center"><Mail className="h-3 w-3 mr-1.5 text-slate-400"/> {lead.email}</div>}
-                    {lead.phone && <div className="flex items-center"><Phone className="h-3 w-3 mr-1.5 text-slate-400"/> {lead.phone}</div>}
+                    {lead.email && (
+                      <a href={`mailto:${lead.email}`} className="flex items-center hover:text-teal-600">
+                        <Mail className="h-3 w-3 mr-1.5 text-slate-400"/> {lead.email}
+                      </a>
+                    )}
+                    {lead.phone && (
+                      <a href={`tel:${lead.phone}`} className="flex items-center hover:text-teal-600">
+                        <Phone className="h-3 w-3 mr-1.5 text-slate-400"/> {lead.phone}
+                      </a>
+                    )}
                   </div>
                 </div>
               ))}
               {leads.filter(l => (l.status || 'New Inquiry') === col).length === 0 && (
-                 <div className="text-center text-slate-400 text-sm py-8 border-2 border-dashed border-slate-200 rounded-lg">Drop lead here</div>
+                 <div className="text-center text-slate-400 text-sm py-8 border-2 border-dashed border-slate-200 rounded-lg">
+                   Drop lead here
+                 </div>
               )}
             </div>
           </div>

@@ -7,7 +7,13 @@ import LegalPage from './components/LegalPage';
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
+import { 
+  getAuth, 
+  signInAnonymously, 
+  onAuthStateChanged, 
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword // <-- ADDED THIS IMPORT
+} from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -97,6 +103,33 @@ export default function App() {
 
     return () => unsubs.forEach(unsub => unsub());
   }, [firebaseUser]);
+
+  // --- CHECKOUT & REGISTRATION LOGIC ---
+  const handleCheckoutSignup = async (checkoutData) => {
+    try {
+      // 1. Create the Firebase Auth account
+      const userCredential = await createUserWithEmailAndPassword(auth, checkoutData.email, checkoutData.password);
+      const secureEmail = userCredential.user.email;
+
+      // 2. Create the active client lead in the pipeline
+      const leadId = `lead_${Date.now()}`;
+      const leadData = {
+        name: checkoutData.familyName,
+        email: secureEmail,
+        phone: checkoutData.phone,
+        seniorName: checkoutData.seniorName,
+        tier: checkoutData.tierSelected,
+        type: 'New Booking Intake',
+        status: 'Active Client' // Bypasses inquiry stage directly to Active Client
+      };
+
+      await runMutation('ws_leads', leadId, 'set', leadData);
+      
+    } catch (error) {
+      console.error("Signup Error:", error);
+      throw error; // Passes the error back to the LandingPage to halt Stripe redirect
+    }
+  };
 
   const handleLogin = async (email, password) => {
     try {
@@ -201,6 +234,7 @@ export default function App() {
         onTeamClick={() => setPublicPage('team')}
         onLegalClick={() => setPublicPage('legal')}
         runMutation={runMutation}
+        onCheckoutSignup={handleCheckoutSignup} // <-- PASSED DOWN TO LANDING PAGE
       />
     );
   }
