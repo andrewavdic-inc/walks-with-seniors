@@ -3,7 +3,7 @@ import { Briefcase, LogOut, User } from 'lucide-react';
 import LandingPage from './components/LandingPage';
 import CareersPage from './components/CareersPage';
 import TeamPage from './components/TeamPage';
-import LegalPage from './components/LegalPage'; // <-- NEW IMPORT
+import LegalPage from './components/LegalPage';
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
@@ -47,6 +47,7 @@ export default function App() {
   const [seniors, setSeniors] = useState([]);
   const [walks, setWalks] = useState([]);
   const [mileageLogs, setMileageLogs] = useState([]);
+  const [leads, setLeads] = useState([]);
   
   const [officeLocation, setOfficeLocation] = useState('Port Colborne, ON');
   const [flatRatePayout, setFlatRatePayout] = useState(25);
@@ -88,6 +89,10 @@ export default function App() {
 
     unsubs.push(onSnapshot(getCol('ws_mileage'), snap => {
       setMileageLogs(snap.docs.map(d => ({ ...d.data(), id: d.id })));
+    }, handleError));
+
+    unsubs.push(onSnapshot(getCol('ws_leads'), snap => {
+      setLeads(snap.docs.map(d => ({ ...d.data(), id: d.id })));
     }, handleError));
 
     return () => unsubs.forEach(unsub => unsub());
@@ -162,7 +167,7 @@ export default function App() {
 
   const [publicPage, setPublicPage] = useState('home');
 
-if (!currentUser) {
+  if (!currentUser) {
     if (publicPage === 'login') {
       return (
         <div className="relative">
@@ -195,6 +200,7 @@ if (!currentUser) {
         onCareersClick={() => setPublicPage('careers')} 
         onTeamClick={() => setPublicPage('team')}
         onLegalClick={() => setPublicPage('legal')}
+        runMutation={runMutation}
       />
     );
   }
@@ -226,6 +232,7 @@ if (!currentUser) {
             seniors={seniors} 
             walks={walks}
             mileageLogs={mileageLogs}
+            leads={leads}
             flatRatePayout={flatRatePayout}
             runMutation={runMutation}
             handleFileUpload={handleFileUpload}

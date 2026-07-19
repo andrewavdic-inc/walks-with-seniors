@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { CalendarIcon, Heart, Users, Coins, MessageSquare } from 'lucide-react';
+import { CalendarIcon, Heart, Users, Coins, MessageSquare, Filter } from 'lucide-react';
 
 import DispatchDashboard from './DispatchDashboard';
 import SeniorManager from './SeniorManager';
 import WalkerManager from './WalkerManager';
 import AdminEarningsManager from './AdminEarningsManager';
 import MilestonesAndFeed from './MilestonesAndFeed';
+import LeadManager from './LeadManager';
 
 export default function AdminDashboard(props) {
   const [activeAdminTab, setActiveAdminTab] = useState('dispatch');
@@ -13,6 +14,7 @@ export default function AdminDashboard(props) {
   const renderAdminTab = () => {
     switch (activeAdminTab) {
       case 'dispatch': return <DispatchDashboard {...props} />;
+      case 'leads': return <LeadManager {...props} />;
       case 'seniors': return <SeniorManager {...props} />;
       case 'walkers': return <WalkerManager {...props} />;
       case 'earnings': return <AdminEarningsManager {...props} />;
@@ -23,6 +25,7 @@ export default function AdminDashboard(props) {
 
   const tabs = [
     { id: 'dispatch', icon: CalendarIcon, label: 'Dispatch Center' }, 
+    { id: 'leads', icon: Filter, label: 'Sales & Intake' }, 
     { id: 'seniors', icon: Heart, label: 'Senior Directory' }, 
     { id: 'walkers', icon: Users, label: 'Walker Team' }, 
     { id: 'earnings', icon: Coins, label: 'Payroll & Earnings' }, 
