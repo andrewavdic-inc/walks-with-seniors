@@ -4,7 +4,7 @@ import {
   ArrowRight, CheckCircle, Sun, Umbrella, Activity
 } from 'lucide-react';
 
-export default function LandingPage({ onLoginClick }) {
+export default function LandingPage({ onLoginClick, onCareersClick }) {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
       
@@ -301,7 +301,16 @@ export default function LandingPage({ onLoginClick }) {
           
           <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-slate-500 text-sm">© {new Date().getFullYear()} Walks with Seniors. All rights reserved.</p>
-            <div className="flex space-x-6 text-sm font-medium">
+            <div className="flex space-x-6 text-sm font-medium items-center">
+              
+              {/* CAREERS BUTTON ADDED HERE */}
+              <button 
+                onClick={onCareersClick} 
+                className="text-teal-400 font-bold hover:text-teal-300 transition"
+              >
+                Careers
+              </button>
+
               <a href="#" className="text-slate-500 hover:text-slate-300 transition">Privacy Policy</a>
               <a href="#" className="text-slate-500 hover:text-slate-300 transition">Terms of Service</a>
               
