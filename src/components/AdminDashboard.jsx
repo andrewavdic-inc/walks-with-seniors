@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CalendarIcon, Heart, Users, Coins, MessageSquare, Filter, PhoneCall, ExternalLink, X } from 'lucide-react';
+import { CalendarIcon, Heart, Users, Coins, MessageSquare, Filter, PhoneCall, ExternalLink, X, Receipt } from 'lucide-react';
 
 import DispatchDashboard from './DispatchDashboard';
 import SeniorManager from './SeniorManager';
@@ -7,6 +7,7 @@ import WalkerManager from './WalkerManager';
 import AdminEarningsManager from './AdminEarningsManager';
 import MilestonesAndFeed from './MilestonesAndFeed';
 import LeadManager from './LeadManager';
+import AdminOrdersManager from './AdminOrdersManager'; // <-- NEW IMPORT
 
 export default function AdminDashboard(props) {
   // Defaulting to the leads tab so you can see your new pipeline immediately
@@ -20,6 +21,7 @@ export default function AdminDashboard(props) {
       case 'seniors': return <SeniorManager {...props} />;
       case 'walkers': return <WalkerManager {...props} />;
       case 'earnings': return <AdminEarningsManager {...props} />;
+      case 'orders': return <AdminOrdersManager {...props} />; // <-- NEW ROUTE
       case 'culture': return <MilestonesAndFeed {...props} />;
       default: return <LeadManager {...props} />;
     }
@@ -30,8 +32,9 @@ export default function AdminDashboard(props) {
     { id: 'dispatch', icon: CalendarIcon, label: 'Dispatch Center' }, 
     { id: 'seniors', icon: Heart, label: 'Senior Directory' }, 
     { id: 'walkers', icon: Users, label: 'Walker Team' }, 
-    { id: 'earnings', icon: Coins, label: 'Payroll & Earnings' }, 
-    { id: 'culture', icon: MessageSquare, label: 'Culture & Milestones' }
+    { id: 'orders', icon: Receipt, label: 'Receivables' }, // <-- NEW TAB
+    { id: 'earnings', icon: Coins, label: 'Payroll' }, 
+    { id: 'culture', icon: MessageSquare, label: 'Culture' }
   ];
 
   return (
@@ -42,7 +45,7 @@ export default function AdminDashboard(props) {
           <p className="text-slate-500">Manage schedule, seniors, and personnel.</p>
         </div>
 
-        {/* NEW: Phone Order Button & Tooltip */}
+        {/* Phone Order Button & Tooltip */}
         <div className="relative">
           <button 
             onClick={() => setShowPhoneOrderHelp(!showPhoneOrderHelp)}
@@ -70,6 +73,7 @@ export default function AdminDashboard(props) {
         </div>
       </div>
 
+      {/* HORIZONTAL TABS SCROLL CONTAINER */}
       <div className="flex space-x-4 border-b border-slate-200 overflow-x-auto scrollbar-hide pb-2">
         {tabs.map(tab => (
           <button 

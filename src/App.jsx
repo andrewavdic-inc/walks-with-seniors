@@ -54,6 +54,7 @@ export default function App() {
   const [walks, setWalks] = useState([]);
   const [mileageLogs, setMileageLogs] = useState([]);
   const [leads, setLeads] = useState([]);
+  const [orders, setOrders] = useState([]); // <-- NEW: Accounts Receivable Data
   
   const [officeLocation, setOfficeLocation] = useState('Port Colborne, ON');
   const [flatRatePayout, setFlatRatePayout] = useState(25);
@@ -99,6 +100,11 @@ export default function App() {
 
     unsubs.push(onSnapshot(getCol('ws_leads'), snap => {
       setLeads(snap.docs.map(d => ({ ...d.data(), id: d.id })));
+    }, handleError));
+
+    // NEW: Listen to the orders database
+    unsubs.push(onSnapshot(getCol('ws_orders'), snap => {
+      setOrders(snap.docs.map(d => ({ ...d.data(), id: d.id })));
     }, handleError));
 
     return () => unsubs.forEach(unsub => unsub());
@@ -267,6 +273,7 @@ export default function App() {
             walks={walks}
             mileageLogs={mileageLogs}
             leads={leads}
+            orders={orders} // <-- NEW: Passing orders down
             flatRatePayout={flatRatePayout}
             runMutation={runMutation}
             handleFileUpload={handleFileUpload}
