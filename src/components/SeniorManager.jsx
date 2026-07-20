@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, Search, MapPin, Activity, Phone, Plus, User, Archive, RefreshCcw, Key, ShoppingBag, ExternalLink, X } from 'lucide-react';
+import { Heart, Search, MapPin, Activity, Phone, Plus, User, Archive, RefreshCcw, Key, ShoppingBag, ExternalLink, X, Pencil } from 'lucide-react';
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 
 export default function SeniorManager({ seniors, runMutation }) {
@@ -7,6 +7,7 @@ export default function SeniorManager({ seniors, runMutation }) {
   const [statusView, setStatusView] = useState('active');
   const [isUploading, setIsUploading] = useState(false);
   const [activeTooltip, setActiveTooltip] = useState(null);
+  const [editingId, setEditingId] = useState(null); // Tracks which senior is being edited
 
   const [formData, setFormData] = useState({
     name: '',
@@ -24,19 +25,55 @@ export default function SeniorManager({ seniors, runMutation }) {
 
   const handleChange = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
 
-  const handleAddSenior = async (e) => {
+  const handleEditClick = (senior) => {
+    setEditingId(senior.id);
+    setFormData({
+      name: senior.name || '',
+      address: senior.address || '',
+      phone: senior.phone || '',
+      mobility: senior.mobility || 'Independent',
+      pace: senior.pace || 'Moderate',
+      routePreferences: senior.routePreferences || '',
+      emergencyContactName: senior.emergencyContactName || '',
+      emergencyContactPhone: senior.emergencyContactPhone || '',
+      monthlyWalksPackage: senior.monthlyWalksPackage?.toString() || '8',
+      accountHolderName: senior.accountHolderName || '',
+      accountHolderEmail: senior.accountHolderEmail || ''
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setFormData({
+      name: '', address: '', phone: '', mobility: 'Independent', pace: 'Moderate', 
+      routePreferences: '', emergencyContactName: '', emergencyContactPhone: '', monthlyWalksPackage: '8',
+      accountHolderName: '', accountHolderEmail: ''
+    });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
     
     setIsUploading(true);
-    const newId = `senior_${Date.now()}`;
-    
-    await runMutation('ws_seniors', newId, 'set', {
-      ...formData,
-      id: newId,
-      monthlyWalksPackage: Number(formData.monthlyWalksPackage) || 0,
-      isActive: true
-    });
+
+    if (editingId) {
+      // Update existing senior
+      await runMutation('ws_seniors', editingId, 'update', {
+        ...formData,
+        monthlyWalksPackage: Number(formData.monthlyWalksPackage) || 0
+      });
+      setEditingId(null);
+    } else {
+      // Create new senior
+      const newId = `senior_${Date.now()}`;
+      await runMutation('ws_seniors', newId, 'set', {
+        ...formData,
+        id: newId,
+        monthlyWalksPackage: Number(formData.monthlyWalksPackage) || 0,
+        isActive: true
+      });
+    }
 
     setFormData({
       name: '', address: '', phone: '', mobility: 'Independent', pace: 'Moderate', 
@@ -97,12 +134,19 @@ export default function SeniorManager({ seniors, runMutation }) {
             filteredSeniors.map(senior => (
               <div key={senior.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col relative group">
                 
-                {/* Deactivate/Reactivate Button */}
-                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                {/* Action Buttons (Edit / Archive / Restore) */}
+                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 bg-white shadow-sm rounded-md border border-slate-100 p-0.5 z-10">
+                  <button onClick={() => handleEditClick(senior)} className="p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600 rounded" title="Edit Profile">
+                    <Pencil className="h-4 w-4"/>
+                  </button>
                   {senior.isActive !== false ? (
-                    <button onClick={() => { if(window.confirm('Deactivate this profile?')) runMutation('ws_seniors', senior.id, 'update', { isActive: false })}} className="p-1.5 text-slate-400 hover:bg-amber-50 hover:text-amber-600 rounded" title="Archive Profile"><Archive className="h-4 w-4"/></button>
+                    <button onClick={() => { if(window.confirm('Deactivate this profile?')) runMutation('ws_seniors', senior.id, 'update', { isActive: false })}} className="p-1.5 text-slate-400 hover:bg-amber-50 hover:text-amber-600 rounded" title="Archive Profile">
+                      <Archive className="h-4 w-4"/>
+                    </button>
                   ) : (
-                    <button onClick={() => runMutation('ws_seniors', senior.id, 'update', { isActive: true })} className="p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 rounded" title="Restore Profile"><RefreshCcw className="h-4 w-4"/></button>
+                    <button onClick={() => runMutation('ws_seniors', senior.id, 'update', { isActive: true })} className="p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 rounded" title="Restore Profile">
+                      <RefreshCcw className="h-4 w-4"/>
+                    </button>
                   )}
                 </div>
 
@@ -110,16 +154,16 @@ export default function SeniorManager({ seniors, runMutation }) {
                   <div>
                     <h3 className="font-bold text-lg text-slate-800">{senior.name}</h3>
                     <div className="flex items-center space-x-3 mt-1 text-sm text-slate-600">
-                      <span className="flex items-center"><MapPin className="h-4 w-4 mr-1 text-slate-400"/> {senior.address}</span>
-                      <span className="flex items-center"><Phone className="h-4 w-4 mr-1 text-slate-400"/> {senior.phone}</span>
+                      <span className="flex items-center"><MapPin className="h-4 w-4 mr-1 text-slate-400"/> {senior.address || 'No address provided'}</span>
+                      <span className="flex items-center"><Phone className="h-4 w-4 mr-1 text-slate-400"/> {senior.phone || 'No phone provided'}</span>
                     </div>
                     
                     <div className="flex gap-2 mt-3">
                       <span className="bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1 rounded text-xs font-bold flex items-center">
-                        <Activity className="h-3.5 w-3.5 mr-1" /> Pace: {senior.pace}
+                        <Activity className="h-3.5 w-3.5 mr-1" /> Pace: {senior.pace || 'Moderate'}
                       </span>
                       <span className="bg-purple-50 text-purple-700 border border-purple-100 px-2.5 py-1 rounded text-xs font-bold">
-                        Aid: {senior.mobility}
+                        Aid: {senior.mobility || 'Independent'}
                       </span>
                     </div>
 
@@ -131,10 +175,10 @@ export default function SeniorManager({ seniors, runMutation }) {
                   <div className="mt-4 sm:mt-0 sm:text-right flex flex-col justify-between">
                     <div>
                       <div className="text-xs font-bold text-slate-400 uppercase">Monthly Package</div>
-                      <div className="text-xl font-black text-teal-600">{senior.monthlyWalksPackage} Walks</div>
+                      <div className="text-xl font-black text-teal-600">{senior.monthlyWalksPackage || 0} Walks</div>
                     </div>
 
-                    {/* NEW: Sell Add-On Button */}
+                    {/* Sell Add-On Button */}
                     <div className="mt-3 relative">
                       <button 
                         onClick={() => setActiveTooltip(activeTooltip === senior.id ? null : senior.id)}
@@ -192,12 +236,14 @@ export default function SeniorManager({ seniors, runMutation }) {
         </div>
       </div>
 
-      {/* RIGHT COLUMN: Add Senior Form */}
+      {/* RIGHT COLUMN: Senior Form (Add or Edit) */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 h-fit">
-        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-          <h2 className="text-lg font-semibold text-slate-800">Add New Senior</h2>
+        <div className={`px-6 py-4 border-b border-slate-200 ${editingId ? 'bg-blue-50 text-blue-900' : 'bg-slate-50 text-slate-800'}`}>
+          <h2 className="text-lg font-semibold flex items-center">
+            {editingId ? <><Pencil className="h-5 w-5 mr-2" /> Edit Senior Profile</> : 'Add New Senior'}
+          </h2>
         </div>
-        <form onSubmit={handleAddSenior} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
             <input type="text" value={formData.name} onChange={e => handleChange('name', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-teal-500 text-sm" required disabled={isUploading}/>
@@ -261,9 +307,25 @@ export default function SeniorManager({ seniors, runMutation }) {
             </div>
           </div>
 
-          <button type="submit" disabled={isUploading} className="w-full mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-lg transition flex items-center justify-center disabled:bg-slate-400 shadow-sm">
-            <Plus className="h-5 w-5 mr-2"/> Add Profile
-          </button>
+          <div className="flex gap-3 mt-4">
+            {editingId && (
+              <button 
+                type="button" 
+                onClick={handleCancelEdit} 
+                disabled={isUploading} 
+                className="flex-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold py-3 px-4 rounded-lg transition shadow-sm disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            )}
+            <button 
+              type="submit" 
+              disabled={isUploading} 
+              className={`flex-1 text-white font-bold py-3 px-4 rounded-lg transition flex items-center justify-center disabled:bg-slate-400 shadow-sm ${editingId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-teal-600 hover:bg-teal-700'}`}
+            >
+              {editingId ? <><Pencil className="h-5 w-5 mr-2"/> Save Changes</> : <><Plus className="h-5 w-5 mr-2"/> Add Profile</>}
+            </button>
+          </div>
         </form>
       </div>
     </div>

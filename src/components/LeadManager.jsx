@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Phone } from 'lucide-react';
+import { Mail, Phone, UserPlus } from 'lucide-react';
 
 export default function LeadManager({ leads = [], runMutation }) {
   const columns = ['New Inquiry', 'Contacted', 'Active Client'];
@@ -17,6 +17,42 @@ export default function LeadManager({ leads = [], runMutation }) {
   };
 
   const handleDragOver = (e) => e.preventDefault();
+
+  // --- AUTOMATED CONVERSION LOGIC ---
+  const handleConvertToSenior = async (lead) => {
+    if (!window.confirm(`Convert ${lead.name}'s lead into an active Senior profile?`)) return;
+
+    // 1. Automatically calculate the walk package based on the tier they bought
+    let walksPerMonth = 0;
+    if (lead.tier) {
+      if (lead.tier.includes('Stroller')) walksPerMonth = 4;
+      else if (lead.tier.includes('Explorer')) walksPerMonth = 8;
+      else if (lead.tier.includes('Centurion')) walksPerMonth = 12;
+    }
+
+    // 2. Generate a new Senior ID
+    const newSeniorId = `senior_${Date.now()}`;
+    
+    // 3. Push the parsed data straight into the ws_seniors database
+    await runMutation('ws_seniors', newSeniorId, 'set', {
+      id: newSeniorId,
+      name: lead.seniorName || lead.name, // Failsafe if they didn't provide a distinct senior name
+      accountHolderName: lead.name,
+      accountHolderEmail: lead.email || '',
+      phone: lead.phone || '',
+      address: '', // Admin can edit this later using the new pencil icon!
+      mobility: 'Independent', // Default
+      pace: 'Moderate', // Default
+      routePreferences: lead.message || '',
+      emergencyContactName: lead.name,
+      emergencyContactPhone: lead.phone || '',
+      monthlyWalksPackage: walksPerMonth,
+      isActive: true
+    });
+
+    // 4. Delete the lead from the board to complete the lifecycle
+    await runMutation('ws_leads', lead.id, 'delete');
+  };
 
   return (
     <div className="space-y-6">
@@ -75,6 +111,16 @@ export default function LeadManager({ leads = [], runMutation }) {
                       </a>
                     )}
                   </div>
+
+                  {/* AUTOMATION BUTTON (Only visible in the Active Client column) */}
+                  {col === 'Active Client' && (
+                    <button 
+                      onClick={() => handleConvertToSenior(lead)}
+                      className="mt-4 w-full bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold py-2 rounded-lg transition text-xs border border-teal-200 flex items-center justify-center shadow-sm"
+                    >
+                      <UserPlus className="h-4 w-4 mr-1.5" /> Add to Directory
+                    </button>
+                  )}
                 </div>
               ))}
               {leads.filter(l => (l.status || 'New Inquiry') === col).length === 0 && (
