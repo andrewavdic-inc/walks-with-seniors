@@ -2,12 +2,20 @@ import React, { useState } from 'react';
 import { Heart, Search, MapPin, Activity, Phone, Plus, User, Archive, RefreshCcw, Key, ShoppingBag, ExternalLink, X, Pencil } from 'lucide-react';
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 
-export default function SeniorManager({ seniors, runMutation }) {
+// --- INLINE HELPERS ---
+const parseLocalSafe = (dateStr) => {
+  if (!dateStr) return new Date();
+  const [y, m, d] = dateStr.split('-').map(Number);
+  if (!y || !m || !d || isNaN(y) || isNaN(m) || isNaN(d)) return new Date();
+  return new Date(y, m - 1, d);
+};
+
+export default function SeniorManager({ seniors, walks = [], runMutation }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusView, setStatusView] = useState('active');
   const [isUploading, setIsUploading] = useState(false);
   const [activeTooltip, setActiveTooltip] = useState(null);
-  const [editingId, setEditingId] = useState(null); // Tracks which senior is being edited
+  const [editingId, setEditingId] = useState(null); 
 
   const [formData, setFormData] = useState({
     name: '',
@@ -58,14 +66,12 @@ export default function SeniorManager({ seniors, runMutation }) {
     setIsUploading(true);
 
     if (editingId) {
-      // Update existing senior
       await runMutation('ws_seniors', editingId, 'update', {
         ...formData,
         monthlyWalksPackage: Number(formData.monthlyWalksPackage) || 0
       });
       setEditingId(null);
     } else {
-      // Create new senior
       const newId = `senior_${Date.now()}`;
       await runMutation('ws_seniors', newId, 'set', {
         ...formData,
@@ -93,6 +99,20 @@ export default function SeniorManager({ seniors, runMutation }) {
       console.error("Reset error:", error);
       alert("Failed to send reset email. Please ensure this email is registered in the system.");
     }
+  };
+
+  // --- CALCULATE WALKS THIS MONTH ---
+  const getWalksThisMonth = (seniorId) => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    return walks.filter(w => {
+      if (w.seniorId !== seniorId) return false;
+      if (w.status === 'cancelled') return false;
+      const d = parseLocalSafe(w.date);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    }).length;
   };
 
   const filteredSeniors = seniors.filter(senior => {
@@ -172,10 +192,13 @@ export default function SeniorManager({ seniors, runMutation }) {
                     )}
                   </div>
 
-                  <div className="mt-4 sm:mt-0 sm:text-right flex flex-col justify-between">
-                    <div>
+                  <div className="mt-4 sm:mt-0 sm:text-right flex flex-col justify-between items-end">
+                    <div className="text-right">
                       <div className="text-xs font-bold text-slate-400 uppercase">Monthly Package</div>
-                      <div className="text-xl font-black text-teal-600">{senior.monthlyWalksPackage || 0} Walks</div>
+                      <div className="text-xl font-black text-teal-600 leading-tight">{senior.monthlyWalksPackage || 0} Walks</div>
+                      <div className="text-[10px] font-bold text-slate-500 mt-1 bg-slate-100 px-2 py-1 rounded border border-slate-200">
+                        Scheduled this month: {getWalksThisMonth(senior.id)}/{senior.monthlyWalksPackage || 0}
+                      </div>
                     </div>
 
                     {/* Sell Add-On Button */}
