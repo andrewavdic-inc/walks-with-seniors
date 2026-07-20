@@ -274,11 +274,15 @@ export default function App() {
           />
         )}
         
-        {viewMode === 'walker' && (
+       {viewMode === 'walker' && (
           <WalkerPortal 
             currentUser={currentUser}
+            walkers={walkers}
             walks={walks}
             seniors={seniors}
+            mileageLogs={mileageLogs}
+            flatRatePayout={flatRatePayout}
+            mileageRate={mileageRate}
             runMutation={runMutation}
             handleFileUpload={handleFileUpload}
           />
