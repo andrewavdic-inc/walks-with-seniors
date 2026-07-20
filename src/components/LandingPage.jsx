@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   MapPin, ShieldCheck, Camera, Coffee, Flower, 
-  ArrowRight, CheckCircle, Sun, Umbrella, Activity, Phone, Mail, Lock
+  ArrowRight, CheckCircle, Sun, Umbrella, Activity, Phone, Mail, Lock,
+  ShoppingBag, Gift, Car, Image as ImageIcon, Heart, Droplets, BookOpen
 } from 'lucide-react';
 
 export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick, onLegalClick, runMutation, onCheckoutSignup }) {
@@ -23,7 +24,6 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
   useEffect(() => {
     if (window.location.search.includes('success=true')) {
       setShowSuccessModal(true);
-      // Clean up the URL so it doesn't keep showing the modal on page refresh
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, []);
@@ -45,7 +45,7 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
     setIsProcessing(true);
     
     try {
-      // Send the data up to App.jsx to create the Auth account and the Lead in the pipeline
+      // Create the Auth account and the Lead in the pipeline
       if (onCheckoutSignup) {
         await onCheckoutSignup({
           ...checkoutForm,
@@ -53,11 +53,8 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
         });
       }
       
-      // In production, you would redirect to the actual Stripe Payment Link here.
-      // e.g., window.location.href = checkoutTier.stripeLink;
-      
-      // For now, we simulate the successful Stripe payment redirect:
-      window.location.href = "?success=true";
+      // Redirect to the actual Stripe Payment Link
+      window.location.href = checkoutTier.stripeLink;
       
     } catch (error) {
       alert(error.message || "Registration failed. Please try again.");
@@ -65,15 +62,44 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
     }
   };
 
+  // Replace these placeholder links with your actual Stripe Payment Links
   const pricingTiers = [
-    { name: "The Stroller", walks: 4, price: 180, stripeLink: "?success=true" },
-    { name: "The Explorer", walks: 8, price: 344, stripeLink: "?success=true" },
-    { name: "The Centurion", walks: 12, price: 492, stripeLink: "?success=true" }
+    { name: "The Stroller", walks: 4, price: 180, stripeLink: "https://buy.stripe.com/test_eVqdR25HSfa37zt1k048000" },
+    { name: "The Explorer", walks: 8, price: 344, stripeLink: "https://buy.stripe.com/test_fZu00c7Q06DxdXR9Qw48001" },
+    { name: "The Centurion", walks: 12, price: 492, stripeLink: "https://buy.stripe.com/test_7sY5kweeo9PJaLF8Ms48002" }
+  ];
+
+  // The 13 Add-On Items for the Carousel
+  const storeItems = [
+    { id: 1, name: "Coffee & Conversation", price: 15, icon: Coffee, desc: "A mid-walk stop at a local cafe for a warm drink.", color: "amber" },
+    { id: 2, name: "Fresh Blooms", price: 25, icon: Flower, desc: "A seasonal flower bouquet delivered on the next walk.", color: "rose" },
+    { id: 3, name: "Bakery Treat Stop", price: 10, icon: ShoppingBag, desc: "Treat them to a fresh pastry, muffin, or cookie.", color: "orange" },
+    { id: 4, name: "Ice Cream Stroll", price: 10, icon: Sun, desc: "A summer favorite! Includes a stop for a scoop of ice cream.", color: "yellow" },
+    { id: 5, name: "Bird Feeding Kit", price: 8, icon: Activity, desc: "Safe, eco-friendly seeds to feed the birds by the canal.", color: "emerald" },
+    { id: 6, name: "Birthday Celebration", price: 40, icon: Gift, desc: "A balloon, gourmet cupcake, and 30 extra minutes.", color: "purple" },
+    { id: 7, name: "Scenic Drive Extension", price: 45, icon: Car, desc: "Upgrade to a 90-minute scenic drive around Niagara.", color: "blue" },
+    { id: 8, name: "Framed Memory", price: 30, icon: ImageIcon, desc: "A printed and framed (5x7) photo from a recent walk.", color: "slate" },
+    { id: 9, name: "Premium Walking Socks", price: 20, icon: Heart, desc: "High-quality, cushioned socks to keep feet blister-free.", color: "rose" },
+    { id: 10, name: "Thermal Hydration Flask", price: 25, icon: Droplets, desc: "An easy-to-open insulated water bottle.", color: "cyan" },
+    { id: 11, name: "The 'Rainy Day' Puzzle Book", price: 15, icon: BookOpen, desc: "Large-print crossword or Sudoku left after the walk.", color: "indigo" },
+    { id: 12, name: "Artisan Tea Collection", price: 20, icon: Coffee, desc: "A curated box of comforting, caffeine-free teas.", color: "amber" },
+    { id: 13, name: "Seasonal Comfort Pack", price: 15, icon: Umbrella, desc: "Winter warmers or Summer cooling essentials.", color: "sky" }
   ];
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col pb-16 md:pb-0">
       
+      {/* Hide Scrollbar Style for Carousel */}
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
+
       {/* CHECKOUT & REGISTRATION MODAL */}
       {checkoutTier && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
@@ -348,15 +374,16 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
         </div>
       </section>
 
-      {/* PRICING SECTION */}
+      {/* PRICING SECTION & ADD-ON CAROUSEL */}
       <section id="pricing" className="py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight mb-4">Simple, Predictable Pricing</h2>
             <p className="text-lg text-slate-600">Prepaid monthly packages with no hidden fees. Cancel or adjust anytime.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24">
             {pricingTiers.map((tier, index) => (
               <div key={index} className={`rounded-3xl p-8 border shadow-sm flex flex-col relative overflow-hidden transition ${index === 1 ? 'bg-teal-700 border-teal-600 shadow-2xl transform md:-translate-y-4' : 'bg-white border-slate-200 group hover:border-teal-400 hover:shadow-xl'}`}>
                 {index === 1 && <div className="absolute top-0 inset-x-0 bg-gradient-to-r from-teal-400 to-emerald-400 text-teal-950 text-xs font-black uppercase tracking-widest text-center py-2 shadow-sm">Most Popular</div>}
@@ -383,26 +410,42 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
             ))}
           </div>
 
-          {/* Add-ons */}
-          <div className="mt-16 bg-white border border-slate-200 rounded-3xl p-8 sm:p-10 shadow-sm">
-            <h3 className="text-2xl font-black text-slate-800 text-center mb-8">Special Add-Ons & Gifting</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
-              <div className="flex items-start sm:pr-8">
-                <div className="bg-amber-100 p-4 rounded-2xl mr-5 shrink-0"><Coffee className="h-8 w-8 text-amber-700"/></div>
-                <div>
-                  <h4 className="text-lg font-bold text-slate-800 mb-1">Coffee & Conversation (+$15)</h4>
-                  <p className="text-sm text-slate-600 leading-relaxed">Treat them! The walker will stop at a local cafe to buy the senior a coffee or tea to enjoy mid-walk.</p>
-                </div>
-              </div>
-              <div className="flex items-start pt-8 sm:pt-0 sm:pl-8">
-                <div className="bg-rose-100 p-4 rounded-2xl mr-5 shrink-0"><Flower className="h-8 w-8 text-rose-600"/></div>
-                <div>
-                  <h4 className="text-lg font-bold text-slate-800 mb-1">Fresh Blooms (+$25)</h4>
-                  <p className="text-sm text-slate-600 leading-relaxed">A beautiful, seasonal flower bouquet delivered directly to the senior on the first walk of the month.</p>
-                </div>
-              </div>
+          {/* ADD-ON STOREFRONT CAROUSEL */}
+          <div className="border-t border-slate-200 pt-16">
+            <div className="text-center max-w-3xl mx-auto mb-10">
+              <h2 className="text-3xl font-black text-slate-800 tracking-tight mb-4">Special Add-Ons & Gifting</h2>
+              <p className="text-lg text-slate-600">Enhance their routine with special surprises. Available to purchase anytime via your Family Portal.</p>
             </div>
+            
+            {/* The Swipeable Carousel */}
+            <div className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory hide-scrollbar px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto -mx-4 sm:-mx-6 lg:-mx-8">
+              {/* Spacer for scroll padding on mobile */}
+              <div className="w-1 shrink-0 lg:hidden"></div>
+              
+              {storeItems.map(item => (
+                <div key={item.id} className="min-w-[280px] w-[280px] sm:w-[320px] shrink-0 snap-start bg-white border border-slate-200 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-shadow flex flex-col h-full group">
+                  <div className="flex items-start mb-4">
+                    <div className={`bg-${item.color}-100 text-${item.color}-700 p-3 rounded-2xl mr-4 shrink-0 group-hover:scale-110 transition-transform`}>
+                      <item.icon className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-slate-800 leading-tight mb-1">{item.name}</h4>
+                      <div className="font-black text-teal-600">(+${item.price})</div>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-600 leading-relaxed flex-1">{item.desc}</p>
+                </div>
+              ))}
+              
+              {/* Spacer for scroll padding on mobile */}
+              <div className="w-1 shrink-0 lg:hidden"></div>
+            </div>
+            
+            <p className="text-center text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center justify-center">
+              <ArrowRight className="h-4 w-4 mr-2" /> Swipe to view all 13 items
+            </p>
           </div>
+
         </div>
       </section>
 
@@ -498,25 +541,11 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
             <div className="flex space-x-6 text-sm font-medium items-center">
               
               <button onClick={onTeamClick} className="text-slate-300 hover:text-white transition">Our Team</button>
-
-              <button 
-                onClick={onCareersClick} 
-                className="text-teal-400 font-bold hover:text-teal-300 transition"
-              >
-                Careers
-              </button>
-
+              <button onClick={onCareersClick} className="text-teal-400 font-bold hover:text-teal-300 transition">Careers</button>
               <button onClick={onLegalClick} className="text-slate-500 hover:text-slate-300 transition">Privacy Policy</button>
               <button onClick={onLegalClick} className="text-slate-500 hover:text-slate-300 transition">Terms of Service</button>
               
-              {/* HIDDEN STAFF LOGIN LINK */}
-              <button 
-                onClick={onLoginClick} 
-                className="text-slate-800 hover:text-slate-500 transition ml-4"
-                title="Staff Portal"
-              >
-                Staff
-              </button>
+              <button onClick={onLoginClick} className="text-slate-800 hover:text-slate-500 transition ml-4" title="Staff Portal">Staff</button>
             </div>
           </div>
         </div>

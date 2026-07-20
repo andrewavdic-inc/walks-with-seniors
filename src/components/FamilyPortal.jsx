@@ -1,7 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
   Heart, CalendarDays, Clock, CheckCircle, 
-  MapPin, Activity, Camera, ArrowRight, User 
+  MapPin, Activity, Camera, ArrowRight, User,
+  Store, Calendar as CalendarIcon, Coffee, Flower,
+  ShoppingBag, Sun, Gift, Car, Image as ImageIcon,
+  Droplets, BookOpen, Umbrella, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 // --- INLINE HELPERS ---
@@ -17,10 +20,18 @@ const parseLocalSafe = (dateStr) => {
 };
 
 export default function FamilyPortal({ currentUser, seniorProfile, walks = [] }) {
+  const [activeTab, setActiveTab] = useState('feed'); // 'feed', 'calendar', 'store'
+  const [monthOffset, setMonthOffset] = useState(0);
+
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
   const todayStr = now.toISOString().split('T')[0];
+
+  // Calendar Display Variables
+  const displayDate = new Date(currentYear, currentMonth + monthOffset, 1);
+  const displayMonth = displayDate.getMonth();
+  const displayYear = displayDate.getFullYear();
 
   // --- DATA DERIVATION ---
   const myWalks = useMemo(() => {
@@ -51,6 +62,56 @@ export default function FamilyPortal({ currentUser, seniorProfile, walks = [] })
                   .sort((a, b) => parseLocalSafe(a.date) - parseLocalSafe(b.date))[0];
   }, [myWalks, todayStr]);
 
+  // --- ADD-ON STORE DATA ---
+  const storeItems = [
+    { id: 1, name: "Coffee & Conversation", price: 15, icon: Coffee, desc: "A mid-walk stop at a local cafe for a warm drink.", link: "https://buy.stripe.com/test_placeholder1" },
+    { id: 2, name: "Fresh Blooms", price: 25, icon: Flower, desc: "A seasonal flower bouquet delivered on the next walk.", link: "https://buy.stripe.com/test_placeholder2" },
+    { id: 3, name: "Bakery Treat Stop", price: 10, icon: ShoppingBag, desc: "Treat them to a fresh pastry, muffin, or cookie.", link: "https://buy.stripe.com/test_placeholder3" },
+    { id: 4, name: "Ice Cream Stroll", price: 10, icon: Sun, desc: "A summer favorite! Includes a stop for a scoop of ice cream.", link: "https://buy.stripe.com/test_placeholder4" },
+    { id: 5, name: "Bird Feeding Kit", price: 8, icon: Activity, desc: "Safe, eco-friendly seeds to feed the birds by the canal.", link: "https://buy.stripe.com/test_placeholder5" },
+    { id: 6, name: "Birthday Celebration", price: 40, icon: Gift, desc: "A balloon, gourmet cupcake, and 30 extra minutes.", link: "https://buy.stripe.com/test_placeholder6" },
+    { id: 7, name: "Scenic Drive Extension", price: 45, icon: Car, desc: "Upgrade to a 90-minute scenic drive around Niagara.", link: "https://buy.stripe.com/test_placeholder7" },
+    { id: 8, name: "Framed Memory", price: 30, icon: ImageIcon, desc: "A printed and framed (5x7) photo from a recent walk.", link: "https://buy.stripe.com/test_placeholder8" },
+    { id: 9, name: "Premium Walking Socks", price: 20, icon: Heart, desc: "High-quality, cushioned socks to keep feet blister-free.", link: "https://buy.stripe.com/test_placeholder9" },
+    { id: 10, name: "Thermal Hydration Flask", price: 25, icon: Droplets, desc: "An easy-to-open insulated water bottle.", link: "https://buy.stripe.com/test_placeholder10" },
+    { id: 11, name: "The 'Rainy Day' Puzzle Book", price: 15, icon: BookOpen, desc: "Large-print crossword or Sudoku left after the walk.", link: "https://buy.stripe.com/test_placeholder11" },
+    { id: 12, name: "Artisan Tea Collection", price: 20, icon: Coffee, desc: "A curated box of comforting, caffeine-free teas.", link: "https://buy.stripe.com/test_placeholder12" },
+    { id: 13, name: "Seasonal Comfort Pack", price: 15, icon: Umbrella, desc: "Winter warmers or Summer cooling essentials.", link: "https://buy.stripe.com/test_placeholder13" }
+  ];
+
+  // --- CALENDAR RENDER HELPERS ---
+  const renderCalendarDays = () => {
+    const daysInMonth = new Date(displayYear, displayMonth + 1, 0).getDate();
+    const firstDay = new Date(displayYear, displayMonth, 1).getDay();
+    
+    const days = [];
+    for (let i = 0; i < firstDay; i++) {
+      days.push(<div key={`empty-${i}`} className="p-2 border border-transparent"></div>);
+    }
+    
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${displayYear}-${String(displayMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const walksOnDay = myWalks.filter(w => w.date === dateStr && w.status !== 'cancelled');
+      
+      const isToday = dateStr === todayStr;
+      
+      days.push(
+        <div key={d} className={`min-h-[80px] p-2 border border-slate-100 rounded-lg flex flex-col ${isToday ? 'bg-rose-50 border-rose-200' : 'bg-white'}`}>
+          <div className={`text-xs font-bold ${isToday ? 'text-rose-600' : 'text-slate-500'} mb-1`}>{d}</div>
+          <div className="flex-1 flex flex-col gap-1 overflow-y-auto scrollbar-hide">
+            {walksOnDay.map(walk => (
+              <div key={walk.id} className={`text-[10px] p-1.5 rounded leading-tight ${walk.status === 'completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-teal-100 text-teal-800'}`}>
+                <span className="font-bold block">{walk.startTime}</span>
+                {walk.status === 'completed' ? 'Completed' : 'Scheduled'}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    return days;
+  };
+
   if (!seniorProfile) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
@@ -62,7 +123,7 @@ export default function FamilyPortal({ currentUser, seniorProfile, walks = [] })
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-12 animate-in fade-in duration-500">
+    <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-in fade-in duration-500">
       
       {/* HEADER: PEACE OF MIND */}
       <div className="bg-gradient-to-br from-rose-500 to-rose-700 rounded-2xl shadow-lg p-6 sm:p-8 text-white relative overflow-hidden">
@@ -110,63 +171,140 @@ export default function FamilyPortal({ currentUser, seniorProfile, walks = [] })
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* LEFT COLUMN: The Update Feed */}
-        <div className="md:col-span-2 space-y-4">
-          <h2 className="text-lg font-black text-slate-800 flex items-center px-1">
-            <Camera className="h-5 w-5 mr-2 text-teal-600" /> Recent Updates
-          </h2>
+        {/* LEFT COLUMN: Tabbed Interface */}
+        <div className="lg:col-span-2 space-y-4">
+          
+          {/* Tabs */}
+          <div className="flex bg-slate-200 p-1 rounded-xl">
+            <button onClick={() => setActiveTab('feed')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition flex items-center justify-center ${activeTab === 'feed' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+              <Camera className="h-4 w-4 mr-2" /> Feed
+            </button>
+            <button onClick={() => setActiveTab('calendar')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition flex items-center justify-center ${activeTab === 'calendar' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+              <CalendarIcon className="h-4 w-4 mr-2" /> Calendar
+            </button>
+            <button onClick={() => setActiveTab('store')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition flex items-center justify-center ${activeTab === 'store' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+              <Store className="h-4 w-4 mr-2" /> Add-Ons
+            </button>
+          </div>
 
-          {completedFeed.length === 0 ? (
-            <div className="bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-10 text-center">
-              <Camera className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500 font-medium">No walks have been completed yet.</p>
-              <p className="text-sm text-slate-400 mt-1">Check back soon for photo updates!</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {completedFeed.map(walk => (
-                <div key={walk.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition duration-300">
-                  {/* Image Section */}
-                  {walk.photoUrl ? (
-                    <div className="w-full h-64 sm:h-80 bg-slate-100 relative overflow-hidden">
-                      <img src={walk.photoUrl} alt="Walk Update" className="w-full h-full object-cover" />
-                      <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm flex items-center">
-                        <CheckCircle className="h-4 w-4 text-emerald-500 mr-1.5" />
-                        <span className="text-xs font-bold text-slate-700">Completed</span>
+          {/* TAB 1: THE FEED */}
+          {activeTab === 'feed' && (
+            <div className="space-y-6 pt-4 animate-in fade-in">
+              {completedFeed.length === 0 ? (
+                <div className="bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-10 text-center">
+                  <Camera className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-500 font-medium">No walks have been completed yet.</p>
+                  <p className="text-sm text-slate-400 mt-1">Check back soon for photo updates!</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {completedFeed.map(walk => (
+                    <div key={walk.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition duration-300">
+                      {walk.photoUrl ? (
+                        <div className="w-full h-64 sm:h-80 bg-slate-100 relative overflow-hidden">
+                          <img src={walk.photoUrl} alt="Walk Update" className="w-full h-full object-cover" />
+                          <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm flex items-center">
+                            <CheckCircle className="h-4 w-4 text-emerald-500 mr-1.5" />
+                            <span className="text-xs font-bold text-slate-700">Completed</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="px-5 pt-5 pb-2 flex justify-between items-center">
+                          <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1 rounded-full text-xs font-bold flex items-center">
+                            <CheckCircle className="h-4 w-4 mr-1.5" /> Walk Completed
+                          </span>
+                        </div>
+                      )}
+                      <div className="p-5 sm:p-6">
+                        <div className="flex items-center text-sm text-slate-500 font-medium mb-3">
+                          <CalendarDays className="h-4 w-4 mr-1.5 text-slate-400" />
+                          {parseLocalSafe(walk.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                          <span className="mx-2">&bull;</span>
+                          {walk.startTime}
+                        </div>
+                        <p className="text-slate-800 font-medium leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
+                          "{walk.walkNotes || 'Walk completed successfully. Had a great time!'}"
+                        </p>
                       </div>
                     </div>
-                  ) : (
-                    <div className="px-5 pt-5 pb-2 flex justify-between items-center">
-                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1 rounded-full text-xs font-bold flex items-center">
-                        <CheckCircle className="h-4 w-4 mr-1.5" /> Walk Completed
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Content Section */}
-                  <div className="p-5 sm:p-6">
-                    <div className="flex items-center text-sm text-slate-500 font-medium mb-3">
-                      <CalendarDays className="h-4 w-4 mr-1.5 text-slate-400" />
-                      {parseLocalSafe(walk.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                      <span className="mx-2">&bull;</span>
-                      {walk.startTime}
-                    </div>
-                    
-                    <p className="text-slate-800 font-medium leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      "{walk.walkNotes || 'Walk completed successfully. Had a great time!'}"
-                    </p>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           )}
+
+          {/* TAB 2: CALENDAR */}
+          {activeTab === 'calendar' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 pt-4 animate-in fade-in">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-black text-slate-800">
+                  {displayDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </h3>
+                <div className="flex space-x-2">
+                  <button onClick={() => setMonthOffset(m => m - 1)} className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition"><ChevronLeft className="h-4 w-4 text-slate-600"/></button>
+                  <button onClick={() => setMonthOffset(0)} className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition">Today</button>
+                  <button onClick={() => setMonthOffset(m => m + 1)} className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition"><ChevronRight className="h-4 w-4 text-slate-600"/></button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-7 gap-2 text-center mb-2">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                  <div key={day} className="text-xs font-bold text-slate-400 uppercase">{day}</div>
+                ))}
+              </div>
+              
+              <div className="grid grid-cols-7 gap-2">
+                {renderCalendarDays()}
+              </div>
+              
+              <div className="mt-6 flex items-center justify-center space-x-6 border-t border-slate-100 pt-4">
+                <div className="flex items-center text-xs font-medium text-slate-600"><span className="w-3 h-3 rounded bg-teal-100 mr-2"></span> Scheduled</div>
+                <div className="flex items-center text-xs font-medium text-slate-600"><span className="w-3 h-3 rounded bg-emerald-100 mr-2"></span> Completed</div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: GIFT STORE */}
+          {activeTab === 'store' && (
+            <div className="pt-4 animate-in fade-in">
+              <h2 className="text-xl font-black text-slate-800 mb-2">Special Add-Ons & Gifting</h2>
+              <p className="text-slate-500 mb-6 text-sm">Surprise them on their next scheduled walk! Select an item below to securely purchase it. Our walkers will receive the instructions instantly.</p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {storeItems.map(item => (
+                  <div key={item.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition flex flex-col h-full">
+                    <div className="flex items-start mb-3">
+                      <div className="bg-teal-50 text-teal-600 p-3 rounded-xl mr-4 shrink-0">
+                        <item.icon className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-800 leading-tight">{item.name}</h3>
+                        <div className="text-lg font-black text-teal-600 mt-1">${item.price}</div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500 mb-5 flex-1">{item.desc}</p>
+                    {/* In production, replace href with {item.link} */}
+                    <a 
+                      href={item.link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="w-full text-center bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg text-sm transition mt-auto"
+                    >
+                      Gift This
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* RIGHT COLUMN: Senior Snapshot */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sticky top-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sticky top-24">
             <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">
               Profile Snapshot
             </h3>
@@ -209,7 +347,7 @@ export default function FamilyPortal({ currentUser, seniorProfile, walks = [] })
             <div className="mt-6 pt-4 border-t border-slate-100">
               <p className="text-xs text-slate-500 text-center flex flex-col items-center">
                 Need to update these details?
-                <a href={`mailto:admin@walkswithseniors.ca`} className="text-teal-600 font-bold mt-1 hover:underline">
+                <a href={`mailto:admin@walkswithseniors.com`} className="text-teal-600 font-bold mt-1 hover:underline">
                   Contact Administration
                 </a>
               </p>
