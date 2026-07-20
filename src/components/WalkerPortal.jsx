@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   MapPin, Clock, Camera, CheckCircle, CloudSun, Heart, 
   Activity, Phone, Loader2, ChevronRight, Calendar as CalendarIcon, 
-  MessageSquare, Coins, Trophy, Award, Car, Plus, FileText, ChevronLeft
+  MessageSquare, Coins, Trophy, Award, Car, Plus, FileText, ChevronLeft, Gift
 } from 'lucide-react';
 
 // --- INLINE HELPERS ---
@@ -310,6 +310,17 @@ export default function WalkerPortal({
                             </div>
                           )}
                         </div>
+
+                        {/* MASSIVE ADD-ON ALERT */}
+                        {walk.addOns && (
+                          <div className={`mb-5 rounded-xl p-4 shadow-sm border-2 ${isCompleted ? 'bg-amber-50 border-amber-200 opacity-70' : 'bg-amber-100 border-amber-400'}`}>
+                            <h4 className={`text-xs font-black uppercase tracking-widest flex items-center mb-1 ${isCompleted ? 'text-amber-700' : 'text-amber-800'}`}>
+                              <Gift className={`h-5 w-5 mr-2 ${isCompleted ? 'text-amber-500' : 'text-amber-600 animate-bounce'}`} />
+                              Special Add-On / Gift
+                            </h4>
+                            <p className={`font-black text-lg leading-tight ${isCompleted ? 'text-amber-800' : 'text-amber-900'}`}>{walk.addOns}</p>
+                          </div>
+                        )}
 
                         {/* Action Area */}
                         {isCompleted ? (

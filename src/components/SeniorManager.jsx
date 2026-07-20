@@ -1,24 +1,25 @@
 import React, { useState } from 'react';
-import { Heart, Search, MapPin, Activity, Phone, Plus, User, Archive, RefreshCcw, Key } from 'lucide-react';
+import { Heart, Search, MapPin, Activity, Phone, Plus, User, Archive, RefreshCcw, Key, ShoppingBag, ExternalLink, X } from 'lucide-react';
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 
 export default function SeniorManager({ seniors, runMutation }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusView, setStatusView] = useState('active');
   const [isUploading, setIsUploading] = useState(false);
+  const [activeTooltip, setActiveTooltip] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '',
     address: '',
     phone: '',
-    mobility: 'Independent', // Independent, Cane, Walker, Wheelchair
-    pace: 'Moderate', // Leisurely, Moderate, Brisk
+    mobility: 'Independent', 
+    pace: 'Moderate', 
     routePreferences: '',
     emergencyContactName: '',
     emergencyContactPhone: '',
-    monthlyWalksPackage: '8', // Prepaid walks per month
-    accountHolderName: '', // For Family Portal Login
-    accountHolderEmail: '' // For Family Portal Login
+    monthlyWalksPackage: '8', 
+    accountHolderName: '', 
+    accountHolderEmail: '' 
   });
 
   const handleChange = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
@@ -132,11 +133,34 @@ export default function SeniorManager({ seniors, runMutation }) {
                       <div className="text-xs font-bold text-slate-400 uppercase">Monthly Package</div>
                       <div className="text-xl font-black text-teal-600">{senior.monthlyWalksPackage} Walks</div>
                     </div>
-                    <div className="mt-2">
-                      <div className="text-xs font-bold text-slate-400 uppercase">Emergency</div>
-                      <div className="text-sm font-semibold text-slate-700">{senior.emergencyContactName}</div>
-                      <div className="text-xs text-slate-500">{senior.emergencyContactPhone}</div>
+
+                    {/* NEW: Sell Add-On Button */}
+                    <div className="mt-3 relative">
+                      <button 
+                        onClick={() => setActiveTooltip(activeTooltip === senior.id ? null : senior.id)}
+                        className="text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-lg font-bold transition flex items-center ml-auto"
+                      >
+                        <ShoppingBag className="h-3 w-3 mr-1.5" /> Sell Add-On
+                      </button>
+
+                      {activeTooltip === senior.id && (
+                        <div className="absolute right-0 top-10 w-72 bg-white rounded-xl shadow-2xl border border-slate-200 p-4 z-50 text-left animate-in fade-in zoom-in-95">
+                          <div className="flex justify-between items-center mb-2">
+                            <h4 className="font-bold text-slate-800 text-sm">Phone Add-On Sale</h4>
+                            <button onClick={() => setActiveTooltip(null)} className="text-slate-400 hover:text-slate-600"><X className="h-4 w-4"/></button>
+                          </div>
+                          <ol className="text-xs text-slate-600 space-y-2 mb-4 list-decimal pl-4 marker:font-bold marker:text-amber-600">
+                            <li>Open Stripe and search for <strong>{senior.accountHolderName || senior.name}</strong>.</li>
+                            <li>Create a "One-off charge" on their saved card.</li>
+                            <li>Go to the <strong>Dispatch Center</strong> and add the item to an upcoming walk.</li>
+                          </ol>
+                          <a href="https://dashboard.stripe.com/customers" target="_blank" rel="noopener noreferrer" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded-lg transition flex items-center justify-center text-xs shadow-sm">
+                            Launch Stripe <ExternalLink className="h-3 w-3 ml-1.5" />
+                          </a>
+                        </div>
+                      )}
                     </div>
+
                   </div>
                 </div>
 
@@ -150,14 +174,16 @@ export default function SeniorManager({ seniors, runMutation }) {
                       <div className="text-sm font-medium text-amber-600">No portal account linked</div>
                     )}
                   </div>
-                  {senior.accountHolderEmail && (
-                    <button 
-                      onClick={() => handlePasswordReset(senior.accountHolderEmail)}
-                      className="text-xs bg-slate-50 hover:bg-teal-50 text-slate-600 hover:text-teal-700 border border-slate-200 hover:border-teal-200 px-3 py-2 rounded-lg transition flex items-center font-bold"
-                    >
-                      <Key className="h-3 w-3 mr-1.5" /> Send Password Reset
-                    </button>
-                  )}
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    {senior.accountHolderEmail && (
+                      <button 
+                        onClick={() => handlePasswordReset(senior.accountHolderEmail)}
+                        className="text-xs bg-slate-50 hover:bg-teal-50 text-slate-600 hover:text-teal-700 border border-slate-200 hover:border-teal-200 px-3 py-2 rounded-lg transition flex items-center font-bold"
+                      >
+                        <Key className="h-3 w-3 mr-1.5" /> Send Password Reset
+                      </button>
+                    )}
+                  </div>
                 </div>
 
               </div>

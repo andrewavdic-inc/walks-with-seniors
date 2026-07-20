@@ -12,7 +12,7 @@ import {
   signInAnonymously, 
   onAuthStateChanged, 
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword // <-- ADDED THIS IMPORT
+  createUserWithEmailAndPassword 
 } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -234,7 +234,7 @@ export default function App() {
         onTeamClick={() => setPublicPage('team')}
         onLegalClick={() => setPublicPage('legal')}
         runMutation={runMutation}
-        onCheckoutSignup={handleCheckoutSignup} // <-- PASSED DOWN TO LANDING PAGE
+        onCheckoutSignup={handleCheckoutSignup} 
       />
     );
   }
@@ -274,7 +274,7 @@ export default function App() {
           />
         )}
         
-       {viewMode === 'walker' && (
+        {viewMode === 'walker' && (
           <WalkerPortal 
             currentUser={currentUser}
             walkers={walkers}
@@ -293,6 +293,7 @@ export default function App() {
             currentUser={currentUser}
             seniorProfile={seniors.find(s => s.id === currentUser.id)}
             walks={walks}
+            runMutation={runMutation}
           />
         )}
       </main>

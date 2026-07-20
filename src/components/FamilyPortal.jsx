@@ -4,7 +4,8 @@ import {
   MapPin, Activity, Camera, ArrowRight, User,
   Store, Calendar as CalendarIcon, Coffee, Flower,
   ShoppingBag, Sun, Gift, Car, Image as ImageIcon,
-  Droplets, BookOpen, Umbrella, ChevronLeft, ChevronRight
+  Droplets, BookOpen, Umbrella, ChevronLeft, ChevronRight,
+  X, Loader2
 } from 'lucide-react';
 
 // --- INLINE HELPERS ---
@@ -19,9 +20,14 @@ const parseLocalSafe = (dateStr) => {
   }
 };
 
-export default function FamilyPortal({ currentUser, seniorProfile, walks = [] }) {
+export default function FamilyPortal({ currentUser, seniorProfile, walks = [], runMutation }) {
   const [activeTab, setActiveTab] = useState('feed'); // 'feed', 'calendar', 'store'
   const [monthOffset, setMonthOffset] = useState(0);
+
+  // --- GIFT STORE MODAL STATE ---
+  const [selectedGift, setSelectedGift] = useState(null);
+  const [selectedWalkId, setSelectedWalkId] = useState('');
+  const [isProcessingGift, setIsProcessingGift] = useState(false);
 
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -62,6 +68,12 @@ export default function FamilyPortal({ currentUser, seniorProfile, walks = [] })
                   .sort((a, b) => parseLocalSafe(a.date) - parseLocalSafe(b.date))[0];
   }, [myWalks, todayStr]);
 
+  // Fetches all upcoming scheduled walks for the dropdown menu
+  const upcomingWalksList = useMemo(() => {
+    return myWalks.filter(w => w.status === 'scheduled' && w.date >= todayStr)
+                  .sort((a, b) => parseLocalSafe(a.date) - parseLocalSafe(b.date));
+  }, [myWalks, todayStr]);
+
   // --- ADD-ON STORE DATA ---
   const storeItems = [
     { id: 1, name: "Coffee & Conversation", price: 15, icon: Coffee, desc: "A mid-walk stop at a local cafe for a warm drink.", link: "https://buy.stripe.com/test_placeholder1" },
@@ -78,6 +90,38 @@ export default function FamilyPortal({ currentUser, seniorProfile, walks = [] })
     { id: 12, name: "Artisan Tea Collection", price: 20, icon: Coffee, desc: "A curated box of comforting, caffeine-free teas.", link: "https://buy.stripe.com/test_placeholder12" },
     { id: 13, name: "Seasonal Comfort Pack", price: 15, icon: Umbrella, desc: "Winter warmers or Summer cooling essentials.", link: "https://buy.stripe.com/test_placeholder13" }
   ];
+
+  // --- HANDLERS ---
+  const handleProceedToStripe = async () => {
+    if (!selectedWalkId || !selectedGift) return;
+    setIsProcessingGift(true);
+
+    try {
+      if (runMutation) {
+        const orderId = `order_${Date.now()}`;
+        const walkDetails = upcomingWalksList.find(w => w.id === selectedWalkId);
+
+        await runMutation('ws_orders', orderId, 'set', {
+          id: orderId,
+          seniorId: seniorProfile.id,
+          seniorName: seniorProfile.name,
+          walkId: selectedWalkId,
+          walkDate: walkDetails?.date || '',
+          itemName: selectedGift.name,
+          price: selectedGift.price,
+          status: 'Pending Verification',
+          createdAt: new Date().toISOString()
+        });
+      }
+      
+      // Send user to Stripe
+      window.location.href = selectedGift.link;
+    } catch (error) {
+      console.error("Order error:", error);
+      setIsProcessingGift(false);
+      alert("There was an issue preparing your order. Please try again.");
+    }
+  };
 
   // --- CALENDAR RENDER HELPERS ---
   const renderCalendarDays = () => {
@@ -285,15 +329,14 @@ export default function FamilyPortal({ currentUser, seniorProfile, walks = [] })
                       </div>
                     </div>
                     <p className="text-xs text-slate-500 mb-5 flex-1">{item.desc}</p>
-                    {/* In production, replace href with {item.link} */}
-                    <a 
-                      href={item.link} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
+                    
+                    {/* CHANGED: Opens Modal Instead of Direct Link */}
+                    <button 
+                      onClick={() => setSelectedGift(item)}
                       className="w-full text-center bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg text-sm transition mt-auto"
                     >
                       Gift This
-                    </a>
+                    </button>
                   </div>
                 ))}
               </div>
@@ -356,6 +399,63 @@ export default function FamilyPortal({ currentUser, seniorProfile, walks = [] })
         </div>
 
       </div>
+
+      {/* --- GIFT DATE SELECTION MODAL --- */}
+      {selectedGift && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-slate-800">Gift Delivery Details</h3>
+              <button onClick={() => !isProcessingGift && setSelectedGift(null)} className="text-slate-400 hover:text-slate-600 transition"><X className="h-5 w-5"/></button>
+            </div>
+
+            <div className="p-6">
+              <div className="flex items-center mb-6 bg-teal-50 p-4 rounded-xl border border-teal-100">
+                <div className="bg-white text-teal-600 p-2 rounded-lg mr-4 shadow-sm shrink-0">
+                  <selectedGift.icon className="h-6 w-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-800 leading-tight">{selectedGift.name}</h4>
+                  <div className="text-teal-700 font-bold text-sm">${selectedGift.price}</div>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-bold text-slate-700 mb-2">Which scheduled walk should we deliver this on?</label>
+                {upcomingWalksList.length === 0 ? (
+                  <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                    There are no upcoming walks scheduled to deliver this gift. Please contact administration or wait until the next schedule is posted.
+                  </div>
+                ) : (
+                  <select
+                    value={selectedWalkId}
+                    onChange={e => setSelectedWalkId(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-teal-500 bg-white text-sm font-medium text-slate-700"
+                    disabled={isProcessingGift}
+                  >
+                    <option value="" disabled>-- Select an Upcoming Walk --</option>
+                    {upcomingWalksList.map(w => (
+                      <option key={w.id} value={w.id}>
+                        {parseLocalSafe(w.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} @ {w.startTime}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <button
+                onClick={handleProceedToStripe}
+                disabled={!selectedWalkId || isProcessingGift}
+                className="w-full bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black py-3.5 rounded-xl shadow-md transition flex items-center justify-center text-sm"
+              >
+                {isProcessingGift ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
+                {isProcessingGift ? 'Preparing Secure Checkout...' : 'Proceed to Payment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

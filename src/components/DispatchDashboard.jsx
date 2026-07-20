@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar as CalendarIcon, Clock, Plus, ChevronLeft, ChevronRight, Trash2, Heart, User, CheckCircle, MapPin } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Plus, ChevronLeft, ChevronRight, Trash2, Heart, User, CheckCircle, MapPin, Gift } from 'lucide-react';
 
 // --- INLINE HELPERS ---
 const parseLocalSafe = (dateStr) => {
@@ -17,6 +17,7 @@ function AddWalkModal({ isOpen, onClose, selectedDate, walkers, seniors, runMuta
   const [date, setDate] = useState(selectedDate || new Date().toISOString().split('T')[0]);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
+  const [addOns, setAddOns] = useState(''); // <-- NEW STATE FOR GIFTS
 
   if (!isOpen) return null;
 
@@ -34,10 +35,12 @@ function AddWalkModal({ isOpen, onClose, selectedDate, walkers, seniors, runMuta
       endTime,
       status: 'scheduled', // 'scheduled', 'completed', 'cancelled'
       walkNotes: '',
-      photoUrl: ''
+      photoUrl: '',
+      addOns: addOns.trim() // <-- SAVES TO DB
     });
     
     onClose();
+    setAddOns('');
   };
 
   return (
@@ -76,7 +79,22 @@ function AddWalkModal({ isOpen, onClose, selectedDate, walkers, seniors, runMuta
               <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-teal-500 text-sm" required />
             </div>
           </div>
-          <div className="pt-4 flex justify-end space-x-3">
+          
+          {/* NEW FIELD: Add-Ons */}
+          <div className="border-t border-slate-100 pt-4 mt-2">
+            <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center">
+              <Gift className="h-4 w-4 mr-1.5 text-amber-500" /> Add-Ons / Gifts (Optional)
+            </label>
+            <input 
+              type="text" 
+              value={addOns} 
+              onChange={(e) => setAddOns(e.target.value)} 
+              placeholder="e.g. Bring Fresh Blooms" 
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-teal-500 text-sm bg-amber-50 placeholder-amber-700/50 text-amber-900 font-medium" 
+            />
+          </div>
+
+          <div className="pt-2 flex justify-end space-x-3">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition">Cancel</button>
             <button type="submit" className="px-4 py-2 text-sm font-bold text-white bg-teal-600 rounded-md hover:bg-teal-700 transition shadow-sm flex items-center">
               <Plus className="h-4 w-4 mr-1"/> Dispatch Walk
@@ -176,9 +194,13 @@ export default function DispatchDashboard({ walks, walkers, seniors, runMutation
                     const isCompleted = walk.status === 'completed';
                     return (
                       <div key={walk.id} className={`text-[10px] p-1.5 rounded relative border shadow-sm ${isCompleted ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-blue-50 text-blue-800 border-blue-200'}`}>
-                        <div className="font-semibold truncate flex items-center">
-                          {isCompleted ? <CheckCircle className="h-2.5 w-2.5 mr-1 shrink-0" /> : <Clock className="h-2.5 w-2.5 mr-1 shrink-0" />}
-                          {getSenior(walk.seniorId)?.name.split(' ')[0] || 'Unknown'}
+                        <div className="font-semibold truncate flex items-center justify-between">
+                          <div className="flex items-center truncate">
+                            {isCompleted ? <CheckCircle className="h-2.5 w-2.5 mr-1 shrink-0" /> : <Clock className="h-2.5 w-2.5 mr-1 shrink-0" />}
+                            <span className="truncate">{getSenior(walk.seniorId)?.name.split(' ')[0] || 'Unknown'}</span>
+                          </div>
+                          {/* Shows a tiny gift icon if addOns exist */}
+                          {walk.addOns && <Gift className="h-3 w-3 text-amber-500 shrink-0 ml-1" />}
                         </div>
                         <div className="truncate opacity-80 mt-0.5">{getWalkerName(walk.walkerId).split(' ')[0]}</div>
                       </div>
@@ -228,6 +250,14 @@ export default function DispatchDashboard({ walks, walkers, seniors, runMutation
                             <div className="text-xs text-slate-500 flex items-center mt-1">
                               <MapPin className="h-3.5 w-3.5 mr-1" /> {senior?.address || 'No address'}
                             </div>
+                            
+                            {/* NEW: Highlights Gifts on the Daily Agenda */}
+                            {walk.addOns && (
+                              <div className="mt-3 bg-amber-50 text-amber-800 border border-amber-200 px-3 py-2 rounded-lg text-sm font-bold flex items-center">
+                                <Gift className="h-4 w-4 mr-2 text-amber-600 shrink-0" />
+                                Special Instructions: {walk.addOns}
+                              </div>
+                            )}
                           </div>
                         </div>
                         
