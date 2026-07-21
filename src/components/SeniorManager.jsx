@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, Search, MapPin, Activity, Phone, Plus, User, Archive, RefreshCcw, Key, ShoppingBag, ExternalLink, X, Pencil } from 'lucide-react';
+import { Heart, Search, MapPin, Activity, Phone, Plus, User, Archive, RefreshCcw, Key, ShoppingBag, ExternalLink, X, Pencil, Calendar, Mail, CheckCircle, Loader2 } from 'lucide-react';
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 
 // --- INLINE HELPERS ---
@@ -10,12 +10,17 @@ const parseLocalSafe = (dateStr) => {
   return new Date(y, m - 1, d);
 };
 
-export default function SeniorManager({ seniors, walks = [], runMutation }) {
+export default function SeniorManager({ seniors, walks = [], walkers = [], settings = [], runMutation }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusView, setStatusView] = useState('active');
   const [isUploading, setIsUploading] = useState(false);
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [editingId, setEditingId] = useState(null); 
+
+  // --- MEET & GREET MODAL STATE ---
+  const [activeMeetModal, setActiveMeetModal] = useState(null);
+  const [meetForm, setMeetForm] = useState({ walkerId: '', date: '', time: '10:00' });
+  const [isSendingMeet, setIsSendingMeet] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -99,6 +104,82 @@ export default function SeniorManager({ seniors, walks = [], runMutation }) {
       console.error("Reset error:", error);
       alert("Failed to send reset email. Please ensure this email is registered in the system.");
     }
+  };
+
+  // --- MEET & GREET LOGIC ---
+  const handleOpenMeetModal = (senior) => {
+    if (!senior.accountHolderEmail) {
+      return alert("This senior does not have a Family Login Email assigned. Please edit their profile to add an email before scheduling a Meet & Greet.");
+    }
+    setActiveMeetModal(senior.id);
+    setMeetForm({ walkerId: '', date: '', time: '10:00' });
+  };
+
+  // Parses the template live for the preview
+  const getParsedEmailPreview = () => {
+    if (!activeMeetModal) return { subject: '', body: '' };
+    const senior = seniors.find(s => s.id === activeMeetModal);
+    const walker = walkers.find(w => w.id === meetForm.walkerId);
+    const templateDoc = settings.find(s => s.id === 'email_templates') || {};
+    
+    let subject = templateDoc.meetGreetSubject || "Meet & Greet Confirmation for {{SeniorName}}";
+    let body = templateDoc.meetGreetBody || "Hi {{FamilyName}},\n\nWe are all set for your Meet & Greet! \n\nYour dedicated companion, {{WalkerName}}, will be coming by on {{Date}} at {{Time}} to meet you and {{SeniorName}}.";
+
+    const tags = {
+      '{{FamilyName}}': senior?.accountHolderName?.split(' ')[0] || 'Family',
+      '{{SeniorName}}': senior?.name?.split(' ')[0] || 'Client',
+      '{{WalkerName}}': walker ? walker.name.split(' ')[0] : '[Walker]',
+      '{{Date}}': meetForm.date ? new Date(meetForm.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : '[Date]',
+      '{{Time}}': meetForm.time ? meetForm.time : '[Time]',
+      '{{EmailAddress}}': senior?.accountHolderEmail || '[Email]'
+    };
+
+    Object.keys(tags).forEach(tag => {
+      subject = subject.replaceAll(tag, tags[tag]);
+      body = body.replaceAll(tag, tags[tag]);
+    });
+
+    return { subject, body };
+  };
+
+  const handleSendMeetGreet = async (e) => {
+    e.preventDefault();
+    if (!meetForm.walkerId || !meetForm.date || !meetForm.time) return;
+    
+    setIsSendingMeet(true);
+    const senior = seniors.find(s => s.id === activeMeetModal);
+    const { subject, body } = getParsedEmailPreview();
+
+    try {
+      // 1. Create the Walk Schedule in the database
+      const walkId = `walk_${Date.now()}`;
+      await runMutation('ws_walks', walkId, 'set', {
+        id: walkId,
+        seniorId: senior.id,
+        walkerId: meetForm.walkerId,
+        date: meetForm.date,
+        startTime: meetForm.time,
+        endTime: "11:00", // Defaulting to 1 hour
+        status: 'scheduled',
+        walkNotes: 'Initial Meet & Greet',
+        addOns: ''
+      });
+
+      // 2. Queue the email in the database for the Firebase Extension to send
+      await runMutation('ws_emails', `email_${Date.now()}`, 'set', {
+        to: senior.accountHolderEmail,
+        message: { subject, text: body },
+        status: 'queued',
+        createdAt: new Date().toISOString()
+      });
+
+      alert(`Success! Meet & Greet scheduled and email dispatched to ${senior.accountHolderEmail}.`);
+      setActiveMeetModal(null);
+    } catch (error) {
+      console.error("Error scheduling meet and greet:", error);
+      alert("There was an error processing this request.");
+    }
+    setIsSendingMeet(false);
   };
 
   // --- CALCULATE WALKS THIS MONTH ---
@@ -231,7 +312,7 @@ export default function SeniorManager({ seniors, walks = [], runMutation }) {
                   </div>
                 </div>
 
-                {/* FAMILY PORTAL ACCESS CONTROLS */}
+                {/* FAMILY PORTAL ACCESS CONTROLS & ONBOARDING */}
                 <div className="mt-2 pt-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <div>
                     <div className="text-xs font-bold text-slate-400 uppercase flex items-center mb-1"><User className="h-3 w-3 mr-1"/> Family Portal Login</div>
@@ -242,6 +323,15 @@ export default function SeniorManager({ seniors, walks = [], runMutation }) {
                     )}
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2">
+                    
+                    {/* NEW: Schedule Meet & Greet Button */}
+                    <button 
+                      onClick={() => handleOpenMeetModal(senior)}
+                      className="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-2 rounded-lg transition flex items-center font-bold"
+                    >
+                      <Calendar className="h-3 w-3 mr-1.5" /> Schedule Meet & Greet
+                    </button>
+
                     {senior.accountHolderEmail && (
                       <button 
                         onClick={() => handlePasswordReset(senior.accountHolderEmail)}
@@ -351,6 +441,108 @@ export default function SeniorManager({ seniors, walks = [], runMutation }) {
           </div>
         </form>
       </div>
+
+      {/* --- SCHEDULE MEET & GREET MODAL --- */}
+      {activeMeetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50 text-indigo-900">
+              <h3 className="font-bold flex items-center"><Calendar className="h-5 w-5 mr-2" /> Schedule Meet & Greet</h3>
+              <button onClick={() => !isSendingMeet && setActiveMeetModal(null)} className="text-indigo-400 hover:text-indigo-600 transition"><X className="h-5 w-5"/></button>
+            </div>
+
+            <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+              {/* Form Side */}
+              <div className="p-6 md:w-1/2 border-b md:border-b-0 md:border-r border-slate-100 overflow-y-auto">
+                <form id="meet-form" onSubmit={handleSendMeetGreet} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Assign Walker</label>
+                    <select 
+                      required
+                      value={meetForm.walkerId} 
+                      onChange={e => setMeetForm({...meetForm, walkerId: e.target.value})}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm font-medium"
+                    >
+                      <option value="" disabled>-- Select Walker --</option>
+                      {walkers.filter(w => w.isActive && w.id !== 'admin1').map(w => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-1">Date</label>
+                      <input 
+                        required
+                        type="date" 
+                        value={meetForm.date} 
+                        onChange={e => setMeetForm({...meetForm, date: e.target.value})}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-1">Time</label>
+                      <input 
+                        required
+                        type="time" 
+                        value={meetForm.time} 
+                        onChange={e => setMeetForm({...meetForm, time: e.target.value})}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-xs text-slate-600 mt-4">
+                    <p className="font-bold text-slate-700 mb-1 flex items-center"><CheckCircle className="h-3.5 w-3.5 mr-1 text-emerald-500" /> What happens next?</p>
+                    <ul className="list-disc pl-4 space-y-1 mt-2">
+                      <li>The walk will be added to the Dispatch Center.</li>
+                      <li>The email previewed on the right will be sent immediately to the family.</li>
+                      <li>A "Morning Of" SMS reminder will be added to your Daily Action Center.</li>
+                    </ul>
+                  </div>
+                </form>
+              </div>
+
+              {/* Email Preview Side */}
+              <div className="p-6 md:w-1/2 bg-slate-50 overflow-y-auto">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center">
+                  <Mail className="h-3 w-3 mr-1.5" /> Live Email Preview
+                </div>
+                <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 text-sm">
+                  <div className="border-b border-slate-100 pb-3 mb-3">
+                    <span className="text-slate-400 font-medium">To:</span> <span className="font-bold text-slate-800">{seniors.find(s => s.id === activeMeetModal)?.accountHolderEmail}</span><br/>
+                    <span className="text-slate-400 font-medium">Subject:</span> <span className="font-bold text-slate-800">{getParsedEmailPreview().subject}</span>
+                  </div>
+                  <div className="text-slate-700 whitespace-pre-wrap leading-relaxed font-medium">
+                    {getParsedEmailPreview().body}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-white flex justify-end gap-3 shrink-0">
+              <button 
+                type="button" 
+                onClick={() => setActiveMeetModal(null)} 
+                disabled={isSendingMeet}
+                className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button 
+                form="meet-form"
+                type="submit" 
+                disabled={isSendingMeet || !meetForm.walkerId || !meetForm.date || !meetForm.time}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg transition shadow-sm flex items-center disabled:bg-slate-300 disabled:cursor-not-allowed"
+              >
+                {isSendingMeet ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</> : <><Mail className="h-4 w-4 mr-2" /> Schedule & Send Email</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
-import { CalendarIcon, Heart, Users, Coins, MessageSquare, Filter, PhoneCall, ExternalLink, X, Receipt } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { 
+  CalendarIcon, Heart, Users, Coins, MessageSquare, Filter, 
+  PhoneCall, ExternalLink, X, Receipt, Settings, BellRing, 
+  CheckCircle, MessageCircle 
+} from 'lucide-react';
 
 import DispatchDashboard from './DispatchDashboard';
 import SeniorManager from './SeniorManager';
@@ -7,13 +11,69 @@ import WalkerManager from './WalkerManager';
 import AdminEarningsManager from './AdminEarningsManager';
 import MilestonesAndFeed from './MilestonesAndFeed';
 import LeadManager from './LeadManager';
-import AdminOrdersManager from './AdminOrdersManager'; // <-- NEW IMPORT
+import AdminOrdersManager from './AdminOrdersManager';
+import AdminSettings from './AdminSettings'; // <-- NEW IMPORT
 
 export default function AdminDashboard(props) {
-  // Defaulting to the leads tab so you can see your new pipeline immediately
+  const { walks = [], seniors = [] } = props;
+  
   const [activeAdminTab, setActiveAdminTab] = useState('leads');
   const [showPhoneOrderHelp, setShowPhoneOrderHelp] = useState(false);
+  const [dismissedAlerts, setDismissedAlerts] = useState([]);
 
+  // --- DAILY ACTION CENTER LOGIC ---
+  const actionItems = useMemo(() => {
+    const items = [];
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    // Group walks by senior to find their chronological first walk
+    seniors.forEach(senior => {
+      const seniorWalks = walks
+        .filter(w => w.seniorId === senior.id && w.status !== 'cancelled')
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+      
+      if (seniorWalks.length > 0) {
+        const firstWalk = seniorWalks[0];
+        const familyName = senior.accountHolderName?.split(' ')[0] || 'the family';
+        
+        // 1. Morning SMS Alert (First walk is today and scheduled)
+        if (firstWalk.date === todayStr && firstWalk.status === 'scheduled') {
+          const alertId = `sms_${firstWalk.id}`;
+          if (!dismissedAlerts.includes(alertId)) {
+            items.push({
+              id: alertId,
+              type: 'sms',
+              icon: MessageCircle,
+              title: 'Morning SMS Required',
+              message: `${senior.name.split(' ')[0]} has their Meet & Greet today at ${firstWalk.startTime}. Send a quick morning confirmation text to ${familyName}.`,
+            });
+          }
+        }
+        
+        // 2. Post-Walk Call Alert (First walk was yesterday and completed)
+        if (firstWalk.date === yesterdayStr && firstWalk.status === 'completed') {
+          const alertId = `call_${firstWalk.id}`;
+          if (!dismissedAlerts.includes(alertId)) {
+            items.push({
+              id: alertId,
+              type: 'call',
+              icon: PhoneCall,
+              title: 'Post-Walk Check-In Call',
+              message: `${senior.name.split(' ')[0]} completed their very first walk yesterday! Call ${familyName} to see how it went and ensure the pacing was comfortable.`,
+            });
+          }
+        }
+      }
+    });
+
+    return items;
+  }, [walks, seniors, dismissedAlerts]);
+
+  // --- ROUTING ---
   const renderAdminTab = () => {
     switch (activeAdminTab) {
       case 'dispatch': return <DispatchDashboard {...props} />;
@@ -21,8 +81,9 @@ export default function AdminDashboard(props) {
       case 'seniors': return <SeniorManager {...props} />;
       case 'walkers': return <WalkerManager {...props} />;
       case 'earnings': return <AdminEarningsManager {...props} />;
-      case 'orders': return <AdminOrdersManager {...props} />; // <-- NEW ROUTE
+      case 'orders': return <AdminOrdersManager {...props} />; 
       case 'culture': return <MilestonesAndFeed {...props} />;
+      case 'settings': return <AdminSettings {...props} />; // <-- NEW ROUTE
       default: return <LeadManager {...props} />;
     }
   };
@@ -32,9 +93,10 @@ export default function AdminDashboard(props) {
     { id: 'dispatch', icon: CalendarIcon, label: 'Dispatch Center' }, 
     { id: 'seniors', icon: Heart, label: 'Senior Directory' }, 
     { id: 'walkers', icon: Users, label: 'Walker Team' }, 
-    { id: 'orders', icon: Receipt, label: 'Receivables' }, // <-- NEW TAB
+    { id: 'orders', icon: Receipt, label: 'Receivables' }, 
     { id: 'earnings', icon: Coins, label: 'Payroll' }, 
-    { id: 'culture', icon: MessageSquare, label: 'Culture' }
+    { id: 'culture', icon: MessageSquare, label: 'Culture' },
+    { id: 'settings', icon: Settings, label: 'Settings' } // <-- NEW TAB
   ];
 
   return (
@@ -72,6 +134,36 @@ export default function AdminDashboard(props) {
           )}
         </div>
       </div>
+
+      {/* --- DAILY ACTION CENTER --- */}
+      {actionItems.length > 0 && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-5 shadow-sm animate-in slide-in-from-top-4">
+          <h3 className="text-indigo-900 font-black mb-4 flex items-center text-lg">
+            <BellRing className="h-5 w-5 mr-2" /> Daily Action Center
+          </h3>
+          <div className="space-y-3">
+            {actionItems.map(item => (
+              <div key={item.id} className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition hover:border-indigo-300">
+                <div className="flex items-start">
+                  <div className="bg-indigo-100 p-2.5 rounded-lg text-indigo-600 mr-4 shrink-0">
+                    <item.icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-base">{item.title}</h4>
+                    <p className="text-sm text-slate-600 mt-1 leading-relaxed">{item.message}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setDismissedAlerts(prev => [...prev, item.id])}
+                  className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg transition flex items-center justify-center shrink-0 shadow-sm"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" /> Mark as Done
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* HORIZONTAL TABS SCROLL CONTAINER */}
       <div className="flex space-x-4 border-b border-slate-200 overflow-x-auto scrollbar-hide pb-2">

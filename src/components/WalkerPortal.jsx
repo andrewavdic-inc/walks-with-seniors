@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   MapPin, Clock, Camera, CheckCircle, CloudSun, Heart, 
   Activity, Phone, Loader2, ChevronRight, Calendar as CalendarIcon, 
-  MessageSquare, Coins, Trophy, Award, Car, Plus, FileText, ChevronLeft, Gift, User
+  MessageSquare, Coins, Trophy, Award, Car, Plus, FileText, ChevronLeft, Gift, User, Star
 } from 'lucide-react';
 
 // --- INLINE HELPERS ---
@@ -23,6 +23,7 @@ export default function WalkerPortal({
   walks = [], 
   seniors = [], 
   mileageLogs = [],
+  settings = [], // <-- Added to pull your custom email templates
   flatRatePayout = 25,
   mileageRate = 0.68,
   runMutation, 
@@ -125,11 +126,47 @@ export default function WalkerPortal({
       uploadedUrl = await handleFileUpload(walkPhoto, 'walk_updates');
     }
 
+    // 1. Mark the walk as completed
     await runMutation('ws_walks', selectedWalk.id, 'update', {
       status: 'completed',
       walkNotes: walkNote,
       photoUrl: uploadedUrl || ''
     });
+
+    // 2. CHECK FOR MILESTONES (10, 50, 100)
+    const previousCompletedCount = walks.filter(w => w.seniorId === selectedWalk.seniorId && w.status === 'completed').length;
+    const newTotal = previousCompletedCount + 1; // Includes the walk we just completed
+
+    if ([10, 50, 100].includes(newTotal)) {
+      const senior = seniors.find(s => s.id === selectedWalk.seniorId);
+      
+      if (senior && senior.accountHolderEmail) {
+        // Parse the dynamic template from settings
+        const templateDoc = settings.find(s => s.id === 'email_templates') || {};
+        let subject = templateDoc.milestoneSubject || "🎉 {{SeniorName}} just reached {{MilestoneCount}} walks!";
+        let body = templateDoc.milestoneBody || "Hi {{FamilyName}},\n\nWe are so excited to share that {{SeniorName}} just completed their {{MilestoneCount}}th walk with us! \n\nConsistency is the key to maintaining mobility and a great mood, and we are so proud to be part of their routine.\n\nBe sure to check your Family Portal to see the latest photo update from today's milestone walk.\n\nWarmly,\nThe Team at Walks with Seniors";
+
+        const tags = {
+          '{{FamilyName}}': senior.accountHolderName?.split(' ')[0] || 'Family',
+          '{{SeniorName}}': senior.name?.split(' ')[0] || 'Client',
+          '{{MilestoneCount}}': newTotal.toString(),
+          '{{EmailAddress}}': senior.accountHolderEmail
+        };
+
+        Object.keys(tags).forEach(tag => {
+          subject = subject.replaceAll(tag, tags[tag]);
+          body = body.replaceAll(tag, tags[tag]);
+        });
+
+        // Queue the celebratory email
+        await runMutation('ws_emails', `email_${Date.now()}_milestone`, 'set', {
+          to: senior.accountHolderEmail,
+          message: { subject, text: body },
+          status: 'queued',
+          createdAt: new Date().toISOString()
+        });
+      }
+    }
 
     setIsSubmitting(false);
     setSelectedWalk(null);
@@ -148,8 +185,8 @@ export default function WalkerPortal({
     await runMutation('ws_mileage', newId, 'set', {
       id: newId,
       walkerId: currentUser.id,
-      walkId: selectedMileageWalk.id, // Links mileage to specific walk
-      seniorName: senior?.name || 'Unknown Senior', // Labels paystub clearly
+      walkId: selectedMileageWalk.id,
+      seniorName: senior?.name || 'Unknown Senior',
       date: todayStr,
       distance: Number(mileageForm.distance),
       notes: mileageForm.notes
@@ -246,7 +283,6 @@ export default function WalkerPortal({
                 <div className="font-black text-slate-800 text-lg leading-tight">{myCompletedWalksTotal} Walks Completed</div>
               </div>
             </div>
-            {/* The global mileage button has been removed from here */}
           </div>
 
           {/* TODAY's ITINERARY */}
@@ -265,6 +301,12 @@ export default function WalkerPortal({
                 myWalksToday.map(walk => {
                   const senior = seniors.find(s => s.id === walk.seniorId);
                   const isCompleted = walk.status === 'completed';
+
+                  // Calculate if this is the senior's chronological first walk
+                  const seniorWalks = walks
+                    .filter(w => w.seniorId === walk.seniorId && w.status !== 'cancelled')
+                    .sort((a, b) => new Date(a.date) - new Date(b.date));
+                  const isFirstWalk = seniorWalks.length > 0 && seniorWalks[0].id === walk.id;
 
                   return (
                     <div key={walk.id} className={`bg-white rounded-2xl shadow-sm border overflow-hidden transition-all ${isCompleted ? 'border-emerald-200' : 'border-slate-200'}`}>
@@ -325,6 +367,19 @@ export default function WalkerPortal({
                           </div>
                         )}
 
+                        {/* FIRST WALK REMINDER */}
+                        {!isCompleted && isFirstWalk && (
+                          <div className="mb-5 bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-start shadow-sm">
+                            <div className="bg-indigo-100 p-2 rounded-lg mr-3 shrink-0">
+                              <Star className="h-6 w-6 text-indigo-600" />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-black text-indigo-900 mb-0.5">First Walk Alert!</h4>
+                              <p className="text-xs text-indigo-800 font-medium">This is {senior?.name?.split(' ')[0]}'s very first walk with us. Do not forget to bring a business card and their welcome merchandise.</p>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Action Area */}
                         <div className="space-y-3">
                           {isCompleted ? (
@@ -350,7 +405,7 @@ export default function WalkerPortal({
                             </button>
                           )}
                           
-                          {/* NEW: Dedicated Log Mileage Button for this specific walk */}
+                          {/* Dedicated Log Mileage Button for this specific walk */}
                           <button 
                             onClick={() => setSelectedMileageWalk(walk)}
                             className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl border border-slate-200 transition flex items-center justify-center text-sm shadow-sm"

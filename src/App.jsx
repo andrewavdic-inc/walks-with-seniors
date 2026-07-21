@@ -54,7 +54,8 @@ export default function App() {
   const [walks, setWalks] = useState([]);
   const [mileageLogs, setMileageLogs] = useState([]);
   const [leads, setLeads] = useState([]);
-  const [orders, setOrders] = useState([]); // <-- NEW: Accounts Receivable Data
+  const [orders, setOrders] = useState([]);
+  const [settings, setSettings] = useState([]); // <-- NEW: Settings Data
   
   const [officeLocation, setOfficeLocation] = useState('Port Colborne, ON');
   const [flatRatePayout, setFlatRatePayout] = useState(25);
@@ -102,9 +103,13 @@ export default function App() {
       setLeads(snap.docs.map(d => ({ ...d.data(), id: d.id })));
     }, handleError));
 
-    // NEW: Listen to the orders database
     unsubs.push(onSnapshot(getCol('ws_orders'), snap => {
       setOrders(snap.docs.map(d => ({ ...d.data(), id: d.id })));
+    }, handleError));
+
+    // NEW: Listen to the settings database for email templates
+    unsubs.push(onSnapshot(getCol('ws_settings'), snap => {
+      setSettings(snap.docs.map(d => ({ ...d.data(), id: d.id })));
     }, handleError));
 
     return () => unsubs.forEach(unsub => unsub());
@@ -113,11 +118,9 @@ export default function App() {
   // --- CHECKOUT & REGISTRATION LOGIC ---
   const handleCheckoutSignup = async (checkoutData) => {
     try {
-      // 1. Create the Firebase Auth account
       const userCredential = await createUserWithEmailAndPassword(auth, checkoutData.email, checkoutData.password);
       const secureEmail = userCredential.user.email;
 
-      // 2. Create the active client lead in the pipeline
       const leadId = `lead_${Date.now()}`;
       const leadData = {
         name: checkoutData.familyName,
@@ -126,14 +129,14 @@ export default function App() {
         seniorName: checkoutData.seniorName,
         tier: checkoutData.tierSelected,
         type: 'New Booking Intake',
-        status: 'Active Client' // Bypasses inquiry stage directly to Active Client
+        status: 'Active Client'
       };
 
       await runMutation('ws_leads', leadId, 'set', leadData);
       
     } catch (error) {
       console.error("Signup Error:", error);
-      throw error; // Passes the error back to the LandingPage to halt Stripe redirect
+      throw error;
     }
   };
 
@@ -273,7 +276,8 @@ export default function App() {
             walks={walks}
             mileageLogs={mileageLogs}
             leads={leads}
-            orders={orders} // <-- NEW: Passing orders down
+            orders={orders}
+            settings={settings} // <-- NEW: Passing settings down
             flatRatePayout={flatRatePayout}
             runMutation={runMutation}
             handleFileUpload={handleFileUpload}
