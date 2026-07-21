@@ -405,7 +405,7 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
           </div>
           <div className="lg:w-1/2 w-full h-[450px] rounded-3xl overflow-hidden shadow-2xl border-8 border-white">
             <iframe 
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d514589.6766468452!2d-79.88219196384218!3d43.01865910243405!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89d3445eec824db9%3A0x46d2c56156bda288!2sRegional%20Municipality%20of%20Niagara%2C%20ON!5e0!3m2!1sen!2sca!4v1715000000000!5m2!1sen!2sca" 
+              src="https://maps.google.com/maps?q=Greater%20Niagara%20Area,%20Ontario&t=&z=10&ie=UTF8&iwloc=&output=embed" 
               width="100%" 
               height="100%" 
               style={{ border: 0 }} 
