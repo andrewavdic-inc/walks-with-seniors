@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   MapPin, Clock, Camera, CheckCircle, CloudSun, Heart, 
   Activity, Phone, Loader2, ChevronRight, Calendar as CalendarIcon, 
-  MessageSquare, Coins, Trophy, Award, Car, Plus, FileText, ChevronLeft, Gift
+  MessageSquare, Coins, Trophy, Award, Car, Plus, FileText, ChevronLeft, Gift, User
 } from 'lucide-react';
 
 // --- INLINE HELPERS ---
@@ -38,7 +38,7 @@ export default function WalkerPortal({
   const [walkPhoto, setWalkPhoto] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const [showMileageModal, setShowMileageModal] = useState(false);
+  const [selectedMileageWalk, setSelectedMileageWalk] = useState(null);
   const [mileageForm, setMileageForm] = useState({ distance: '', notes: '' });
 
   // --- CALENDAR STATE ---
@@ -139,19 +139,24 @@ export default function WalkerPortal({
 
   const handleLogMileage = async (e) => {
     e.preventDefault();
+    if (!selectedMileageWalk) return;
     setIsSubmitting(true);
     
+    const senior = seniors.find(s => s.id === selectedMileageWalk.seniorId);
     const newId = `mileage_${Date.now()}`;
+    
     await runMutation('ws_mileage', newId, 'set', {
       id: newId,
       walkerId: currentUser.id,
+      walkId: selectedMileageWalk.id, // Links mileage to specific walk
+      seniorName: senior?.name || 'Unknown Senior', // Labels paystub clearly
       date: todayStr,
       distance: Number(mileageForm.distance),
       notes: mileageForm.notes
     });
 
     setIsSubmitting(false);
-    setShowMileageModal(false);
+    setSelectedMileageWalk(null);
     setMileageForm({ distance: '', notes: '' });
   };
 
@@ -241,9 +246,7 @@ export default function WalkerPortal({
                 <div className="font-black text-slate-800 text-lg leading-tight">{myCompletedWalksTotal} Walks Completed</div>
               </div>
             </div>
-            <button onClick={() => setShowMileageModal(true)} className="bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold px-4 py-2 rounded-lg transition flex items-center text-sm border border-teal-200">
-              <Car className="h-4 w-4 mr-2" /> Log Mileage
-            </button>
+            {/* The global mileage button has been removed from here */}
           </div>
 
           {/* TODAY's ITINERARY */}
@@ -323,28 +326,39 @@ export default function WalkerPortal({
                         )}
 
                         {/* Action Area */}
-                        {isCompleted ? (
-                          <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 flex items-center">
-                            {walk.photoUrl ? (
-                              <img src={walk.photoUrl} alt="Walk" className="h-16 w-16 rounded-lg object-cover mr-4 shadow-sm" />
-                            ) : (
-                              <div className="h-16 w-16 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-500 mr-4">
-                                <CheckCircle className="h-6 w-6" />
+                        <div className="space-y-3">
+                          {isCompleted ? (
+                            <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 flex items-center">
+                              {walk.photoUrl ? (
+                                <img src={walk.photoUrl} alt="Walk" className="h-16 w-16 rounded-lg object-cover mr-4 shadow-sm" />
+                              ) : (
+                                <div className="h-16 w-16 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-500 mr-4">
+                                  <CheckCircle className="h-6 w-6" />
+                                </div>
+                              )}
+                              <div className="flex-1">
+                                <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-1">Update Sent to Family</p>
+                                <p className="text-sm font-medium text-emerald-900 line-clamp-2">"{walk.walkNotes || 'Walk completed successfully.'}"</p>
                               </div>
-                            )}
-                            <div className="flex-1">
-                              <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-1">Update Sent to Family</p>
-                              <p className="text-sm font-medium text-emerald-900 line-clamp-2">"{walk.walkNotes || 'Walk completed successfully.'}"</p>
                             </div>
-                          </div>
-                        ) : (
+                          ) : (
+                            <button 
+                              onClick={() => setSelectedWalk(walk)}
+                              className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-md transition flex items-center justify-center text-base"
+                            >
+                              Complete Walk & Send Update <ChevronRight className="h-5 w-5 ml-1" />
+                            </button>
+                          )}
+                          
+                          {/* NEW: Dedicated Log Mileage Button for this specific walk */}
                           <button 
-                            onClick={() => setSelectedWalk(walk)}
-                            className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-md transition flex items-center justify-center text-base"
+                            onClick={() => setSelectedMileageWalk(walk)}
+                            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl border border-slate-200 transition flex items-center justify-center text-sm shadow-sm"
                           >
-                            Complete Walk & Send Update <ChevronRight className="h-5 w-5 ml-1" />
+                            <Car className="h-4 w-4 mr-2 text-slate-500" /> Log Mileage for this Visit
                           </button>
-                        )}
+                        </div>
+
                       </div>
                       
                       {/* Emergency Contact Footer */}
@@ -514,11 +528,11 @@ export default function WalkerPortal({
                       <td className="p-4 text-right font-bold text-teal-700">+${flatRatePayout.toFixed(2)}</td>
                     </tr>
                   ))}
-                  {/* Map Mileage */}
+                  {/* Map Mileage - NOW INCLUDES SENIOR NAME */}
                   {currentMonthMileage.map(m => (
                     <tr key={m.id} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="p-4 text-slate-600">{m.date}</td>
-                      <td className="p-4 font-medium text-slate-800">Mileage Logged ({m.distance} km)</td>
+                      <td className="p-4 font-medium text-slate-800">Mileage: {m.seniorName || 'General'} ({m.distance} km)</td>
                       <td className="p-4 text-right font-bold text-teal-700">+${(m.distance * mileageRate).toFixed(2)}</td>
                     </tr>
                   ))}
@@ -605,15 +619,23 @@ export default function WalkerPortal({
       )}
 
       {/* --- LOG MILEAGE MODAL --- */}
-      {showMileageModal && (
+      {selectedMileageWalk && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end sm:items-center sm:justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95">
             <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-teal-50">
               <h3 className="text-xl font-black text-teal-900 flex items-center"><Car className="h-5 w-5 mr-2" /> Log Mileage</h3>
-              <button onClick={() => !isSubmitting && setShowMileageModal(false)} className="text-teal-700 hover:text-teal-900 transition text-2xl leading-none">&times;</button>
+              <button onClick={() => !isSubmitting && setSelectedMileageWalk(null)} className="text-teal-700 hover:text-teal-900 transition text-2xl leading-none">&times;</button>
             </div>
             
             <form onSubmit={handleLogMileage} className="p-6 space-y-5">
+              <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center mb-2 shadow-sm">
+                <User className="h-5 w-5 text-slate-400 mr-3" />
+                <div>
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Client Visit</div>
+                  <div className="font-bold text-slate-800">{seniors.find(s => s.id === selectedMileageWalk.seniorId)?.name || 'Unknown Senior'}</div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Distance Driven (km)</label>
                 <input 
