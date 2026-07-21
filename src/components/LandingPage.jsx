@@ -196,6 +196,7 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
               <button onClick={onTeamClick} className="hover:text-teal-600 transition">Our Team</button>
               <a href="#services" className="hover:text-teal-600 transition">Services</a>
               <a href="#how-it-works" className="hover:text-teal-600 transition">How it Works</a>
+              <a href="#service-area" className="hover:text-teal-600 transition">Service Area</a>
               <a href="#pricing" className="hover:text-teal-600 transition">Pricing</a>
               <a href="#contact" className="hover:text-teal-600 transition">Contact</a>
               <button 
@@ -345,7 +346,7 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how-it-works" className="py-24 bg-white border-y border-slate-200">
+      <section id="how-it-works" className="py-24 bg-white border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight">How It Works</h2>
@@ -374,8 +375,52 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
         </div>
       </section>
 
+      {/* SERVICE AREA MAP SECTION */}
+      <section id="service-area" className="py-24 bg-slate-50 border-t border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center gap-12">
+          <div className="lg:w-1/2">
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-teal-100 border border-teal-200 text-teal-800 font-bold text-sm mb-6 shadow-sm">
+              <MapPin className="h-4 w-4 mr-2 text-teal-600" /> Local & Reliable
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight mb-6">
+              Proudly Servicing the <span className="text-teal-600">Niagara Region</span>
+            </h2>
+            <p className="text-lg text-slate-600 leading-relaxed mb-8">
+              We are a locally owned and operated business, dedicated to supporting seniors across the beautiful Niagara Peninsula. 
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-2 mb-8">
+              {[
+                "Fort Erie", "Grimsby", "Lincoln", 
+                "Niagara Falls", "Niagara-on-the-Lake", "Pelham", 
+                "Port Colborne", "St. Catharines", "Thorold"
+              ].map(city => (
+                <div key={city} className="flex items-center text-sm font-bold text-slate-700">
+                  <CheckCircle className="h-4 w-4 text-teal-500 mr-2 shrink-0" /> {city}
+                </div>
+              ))}
+            </div>
+            <p className="text-sm text-slate-500 italic bg-white p-4 rounded-xl border border-slate-200 shadow-sm inline-block">
+              Don't see your town listed? <a href="#contact" className="text-teal-600 hover:underline font-bold">Contact us</a> to see if we can accommodate your area!
+            </p>
+          </div>
+          <div className="lg:w-1/2 w-full h-[450px] rounded-3xl overflow-hidden shadow-2xl border-8 border-white">
+            <iframe 
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d186126.4385150901!2d-79.37340333336785!3d43.06456073155725!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89d3445eec824db9%3A0x46d2c56156bda288!2sNiagara%20Regional%20Municipality%2C%20ON!5e0!3m2!1sen!2sca!4v1700000000000!5m2!1sen!2sca" 
+              width="100%" 
+              height="100%" 
+              style={{ border: 0 }} 
+              allowFullScreen="" 
+              loading="lazy" 
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Niagara Region Service Area"
+              className="bg-slate-100"
+            ></iframe>
+          </div>
+        </div>
+      </section>
+
       {/* PRICING SECTION & ADD-ON CAROUSEL */}
-      <section id="pricing" className="py-24 bg-slate-50">
+      <section id="pricing" className="py-24 bg-white border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="text-center max-w-3xl mx-auto mb-16">
@@ -450,19 +495,19 @@ export default function LandingPage({ onLoginClick, onCareersClick, onTeamClick,
       </section>
 
       {/* FAQ SECTION */}
-      <section className="py-24 bg-white border-y border-slate-200">
+      <section className="py-24 bg-slate-50 border-y border-slate-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-black text-slate-800 text-center mb-12">Frequently Asked Questions</h2>
           <div className="space-y-6">
-            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
               <h3 className="font-bold text-lg text-slate-800 mb-2">What happens if it rains or snows?</h3>
               <p className="text-slate-600">We monitor the weather closely. If it is unsafe or uncomfortable, we transition to our climate-controlled mall walk routes, or we can simply reschedule the walk based on your preference.</p>
             </div>
-            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
               <h3 className="font-bold text-lg text-slate-800 mb-2">Do you handle wheelchairs and walkers?</h3>
               <p className="text-slate-600">Absolutely. Our companions are trained to assist with light mobility aids, ensuring safe transitions, comfortable pacing, and zero pressure.</p>
             </div>
-            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
               <h3 className="font-bold text-lg text-slate-800 mb-2">Can I meet the walker first?</h3>
               <p className="text-slate-600">Yes! The first scheduled visit is always a "Meet & Greet" at the senior's home where everyone can get comfortable and establish the routine together.</p>
             </div>
